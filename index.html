@@ -104,9 +104,28 @@ button { cursor: pointer; }
 .btn[aria-pressed="true"] { background: rgba(92,207,140,.18); border-color: var(--copper); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 
-.grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+/* Susun atur: kiri = langkah di atas, papan litar di bawahnya · kanan = Inspektor Volt (melekat semasa skrol) · telefon = langkah, papan, ejen */
+.grid { display: grid; gap: 16px; align-items: start; grid-template-columns: minmax(0, 1fr); grid-template-areas: "steps" "board" "agent"; }
+.col-steps { grid-area: steps; } .col-board { grid-area: board; } .col-agent { grid-area: agent; }
+@media (min-width: 1000px) {
+  .wrap { max-width: 1500px; }
+  .grid { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "steps agent" "board agent"; }
+  .col-agent .chat-wrap { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .col-agent .volt { flex-direction: row; align-items: center; text-align: left; padding-top: 0; gap: 14px; }
+  .col-agent .volt-stage { width: 88px; flex: none; }
+  .col-agent .volt-img { width: 88px; }
+  .col-agent .volt-shadow { display: none; }
+  .col-agent .volt-info { align-items: flex-start; flex: 1; }
+  .col-agent .volt-status { max-width: none; min-height: 0; }
+  .col-agent .volt-think { top: -10px; right: -16px; }
+  .col-agent .volt-badge { top: -6px; left: -8px; }
+  .col-agent .chat-wrap .msg.agent::before { display: none; }
+  .col-agent .msgs { height: 440px; }
+}
+@media (min-width: 1000px) and (min-height: 760px) {
+  .col-agent { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+}
 .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-@media (max-width: 1000px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 .panel { --pbg: var(--mask-2); --pbd: var(--mask-3); --pin: var(--mask); --pacc: var(--copper);
   background: var(--pbg); border: 1px solid var(--pbd); border-radius: 10px; padding: 14px 16px; min-width: 0; }
 /* Setiap kotak ada warna sendiri */
@@ -122,7 +141,17 @@ button { cursor: pointer; }
 .casehead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
 .expr { font: 600 26px var(--f-mono); letter-spacing: .02em; }
 .symptom { margin: 6px 0 0; padding: 8px 12px; border-left: 3px solid #9aa39f; background: rgba(255,255,255,.05); border-radius: 0 6px 6px 0; }
-.board-wrap { overflow-x: auto; margin-top: 10px; }
+.board-wrap { overflow-x: auto; margin-top: 10px; border-radius: 8px; scroll-margin: 80px; }
+.board-title { margin: 14px 0 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.board-title span { font: 400 12.5px var(--f-body); letter-spacing: 0; text-transform: none; color: var(--silk-dim); }
+.board-wrap.spot { animation: spot .8s ease-in-out 3; }
+@keyframes spot { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 4px #8fe0b0; } }
+.board.nudge .sw > rect:first-child { animation: swPulse 1.4s ease-in-out infinite; }
+@keyframes swPulse { 50% { stroke: #b9f5cf; stroke-width: 4; } }
+.swrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0; }
+.swbtn { font: 600 14px var(--f-mono); padding: 7px 14px; border-radius: 8px; border: 2px solid var(--silk-dim); background: var(--mask); color: var(--silk); cursor: pointer; }
+.swbtn[aria-pressed="true"] { background: #1f4d38; border-color: var(--copper); }
+.swbtn b { font-family: var(--f-display); margin-right: 2px; }
 svg.board { display: block; width: 100%; min-width: 560px; height: auto; }
 .pad, .sw { cursor: pointer; }
 .pad:hover .ring, .pad:focus-visible .ring { stroke-width: 3; }
@@ -235,6 +264,30 @@ textarea { resize: vertical; min-height: 52px; }
 .seg button[aria-pressed="true"] { background: var(--copper); color: #08140e; }
 .note { font-size: 12.5px; color: var(--silk-dim); margin: 0; }
 .warn { font-size: 12.5px; color: var(--z); margin: 0; }
+/* Gambar situasi (langkah 1) */
+.scene { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 0.85fr); align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--pbd); border-radius: 10px; background: var(--pbg); }
+.scene-in { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tile { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; background: var(--pin); border: 1px solid var(--pbd); min-width: 0; }
+.tile .ic { position: relative; width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: #1f4d38; color: #8fe0b0; }
+.tile .ic svg { width: 22px; height: 22px; }
+.tile .ic b { position: absolute; right: -6px; bottom: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #e6ece9; color: #0b0f0e; font: 700 11px/20px var(--f-mono); text-align: center; }
+.tile .tx { display: flex; flex-direction: column; min-width: 0; font-size: 13.5px; line-height: 1.3; }
+.tile .tx small { font: 400 11px var(--f-mono); color: var(--silk-dim); letter-spacing: .04em; }
+.tile.out .ic { background: #4a1f1b; color: #ff8a7d; box-shadow: 0 0 0 3px rgba(255, 90, 77, .15); }
+.scene-mid { display: flex; align-items: center; gap: 6px; color: var(--silk-dim); }
+.scene-mid .gates { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.scene-mid .gate { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--pbd); background: var(--pin); }
+.scene-mid .gate svg { width: 46px; height: 30px; }
+.scene-mid .gate span { font: 600 11px var(--f-mono); color: var(--silk); letter-spacing: .06em; }
+.scene-mid .arr { font: 400 18px/1 var(--f-mono); color: var(--silk-dim); }
+.scene-cap { margin: 2px 0 0; font-size: 12px; color: var(--silk-dim); }
+@media (max-width: 560px) {
+  .scene { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; padding: 10px 8px; }
+  .tile { flex-direction: column; text-align: center; padding: 8px 6px; gap: 6px; }
+  .tile .tx { align-items: center; }
+  .scene-mid .gate svg { width: 36px; height: 24px; }
+  .scene-mid > .arr { display: none; }
+}
 /* Skrin utama */
 .home { display: flex; flex-direction: column; gap: 16px; }
 .home-hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 24px; align-items: center; padding: 28px; }
@@ -430,13 +483,43 @@ body.at-home .stats, body.at-home #btnBrain, body.at-home #btnHome { display: no
 
 
   <div class="grid">
-    <div class="col">
+    <div class="col col-steps">
+      <section class="panel p-steps" id="summary" hidden aria-labelledby="hSum">
+        <p class="eyebrow" id="hSum">Sesi tamat</p>
+        <div id="sumBody"></div>
+        <div class="report" id="reportBox">
+          <h3>Hantar keputusan</h3>
+          <p class="note" style="margin:0">Hantar laporan ni kepada pensyarah atau emel sendiri. Butang Hantar akan buka aplikasi emel awak dengan laporan siap ditulis, kemudian awak tekan Hantar dalam aplikasi tu. Detektif Litar tak simpan laporan atau emel awak.</p>
+          <div class="report-grid">
+            <label for="repNama">Nama<input type="text" id="repNama" maxlength="40" autocomplete="name"></label>
+            <label for="repKelas">Kelas / kumpulan (pilihan)<input type="text" id="repKelas" maxlength="30" placeholder="Contoh: DET 2A" autocomplete="off"></label>
+            <label class="full" for="repEmail">Emel penerima<input type="email" id="repEmail" maxlength="80" placeholder="pensyarah@contoh.edu.my" autocomplete="email"></label>
+            <label class="full" for="repText">Laporan<textarea id="repText" readonly></textarea></label>
+          </div>
+          <p id="repMsg" class="note" style="margin:0" aria-live="polite"></p>
+          <div class="row-actions">
+            <button class="btn primary" id="btnMail" type="button">Hantar melalui emel</button>
+            <button class="btn" id="btnCopy" type="button">Salin laporan</button>
+          </div>
+        </div>
+        <div class="row-actions"><button class="btn primary" id="btnNewSesi">Mula sesi baharu</button><button class="btn" id="btnHome2">Ke skrin utama</button></div>
+      </section>
+      <section class="panel p-steps" id="stepsPanel" aria-labelledby="hSteps">
+        <p class="eyebrow" id="hSteps">Langkah penyiasatan</p>
+        <div class="steps" id="steps"></div>
+      </section>
+
+
+    </div>
+
+    <div class="col col-board">
       <section class="panel p-case" aria-labelledby="hCase">
         <p class="eyebrow" id="hCase">Kes #1 · Tahap 1</p>
         <div class="casehead"><span class="expr" id="caseExpr"></span><span class="lbl" id="caseIc"></span></div>
         <p id="caseStory" style="margin:6px 0 0;max-width:68ch"></p>
         <p class="lbl" id="caseMap" style="margin:4px 0 0"></p>
         <p class="symptom" id="caseSymptom"></p>
+        <p class="eyebrow board-title" id="papanTitle">Papan litar <span>Kotak A, B di kiri ialah suis. Bulatan LED di kanan.</span></p>
         <div class="board-wrap"><svg class="board" id="board" viewBox="0 0 660 290" role="img" aria-label="Litar get logik"></svg></div>
         <div class="legend">
           <span>Klik kotak <b>A</b>/<b>B</b>/<b>C</b> untuk tukar 0 ↔ 1</span>
@@ -450,6 +533,9 @@ body.at-home .stats, body.at-home #btnBrain, body.at-home #btnHome { display: no
           <span class="where" id="lpWhere"></span>
         </div>
       </section>
+    </div>
+
+    <div class="col col-agent">
       <section class="panel p-chat chat-wrap" aria-labelledby="hChat">
         <div class="volt" id="volt">
           <button class="volt-stage" id="voltBtn" type="button" aria-label="Klik Inspektor Volt untuk dapat tip">
@@ -481,35 +567,6 @@ body.at-home .stats, body.at-home #btnBrain, body.at-home #btnHome { display: no
         </div>
       </section>
     </div>
-
-    <div class="col">
-      <section class="panel p-steps" id="summary" hidden aria-labelledby="hSum">
-        <p class="eyebrow" id="hSum">Sesi tamat</p>
-        <div id="sumBody"></div>
-        <div class="report" id="reportBox">
-          <h3>Hantar keputusan</h3>
-          <p class="note" style="margin:0">Hantar laporan ni kepada pensyarah atau emel sendiri. Butang Hantar akan buka aplikasi emel awak dengan laporan siap ditulis, kemudian awak tekan Hantar dalam aplikasi tu. Detektif Litar tak simpan laporan atau emel awak.</p>
-          <div class="report-grid">
-            <label for="repNama">Nama<input type="text" id="repNama" maxlength="40" autocomplete="name"></label>
-            <label for="repKelas">Kelas / kumpulan (pilihan)<input type="text" id="repKelas" maxlength="30" placeholder="Contoh: DET 2A" autocomplete="off"></label>
-            <label class="full" for="repEmail">Emel penerima<input type="email" id="repEmail" maxlength="80" placeholder="pensyarah@contoh.edu.my" autocomplete="email"></label>
-            <label class="full" for="repText">Laporan<textarea id="repText" readonly></textarea></label>
-          </div>
-          <p id="repMsg" class="note" style="margin:0" aria-live="polite"></p>
-          <div class="row-actions">
-            <button class="btn primary" id="btnMail" type="button">Hantar melalui emel</button>
-            <button class="btn" id="btnCopy" type="button">Salin laporan</button>
-          </div>
-        </div>
-        <div class="row-actions"><button class="btn primary" id="btnNewSesi">Mula sesi baharu</button><button class="btn" id="btnHome2">Ke skrin utama</button></div>
-      </section>
-      <section class="panel p-steps" id="stepsPanel" aria-labelledby="hSteps">
-        <p class="eyebrow" id="hSteps">Langkah penyiasatan</p>
-        <div class="steps" id="steps"></div>
-      </section>
-
-
-    </div>
   </div>
 
   <section class="brain" id="brain" hidden>
@@ -534,6 +591,10 @@ body.at-home .stats, body.at-home #btnBrain, body.at-home #btnHome { display: no
    supaya kawan atau juri cuma perlu masukkan kod akses. URL ini bukan rahsia;
    yang melindungi kuota ialah kod akses. JANGAN tulis API key di sini. */
 const KONFIG = { proxyUrl: "" };
+/* Bila fail ini dihoskan oleh Google Apps Script (HtmlService), app terus guna
+   pelayan dalam projek yang sama melalui google.script.run. */
+const GAS = typeof google !== "undefined" && google.script && google.script.run ? true : false;
+const perantara = () => GAS || !!S.proxyUrl;
 /* ================= SIMULATOR LOGIK (SIM-START) ================= */
 const GATE = {
   AND:  { ic: "74LS08", nama: "AND",    n: 2, f: (a, b) => a & b,       pinIn: [1, 2], pinOut: 3 },
@@ -675,6 +736,29 @@ const SCENARIOS = {
 };
 function gateOf(c, id) { return c.gates.find(g => g.id === id); }
 
+const IKON = {"arrow-down": "<path d=\"M12 5v14\"/><path d=\"m19 12-7 7-7-7\"/>", "arrow-up": "<path d=\"m5 12 7-7 7 7\"/><path d=\"M12 19V5\"/>", "arrow-up-down": "<path d=\"m21 16-4 4-4-4\"/><path d=\"M17 20V4\"/><path d=\"m3 8 4-4 4 4\"/><path d=\"M7 4v16\"/>", "ban": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m4.9 4.9 14.2 14.2\"/>", "bell-ring": "<path d=\"M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9\"/><path d=\"M10.3 21a1.94 1.94 0 0 0 3.4 0\"/><path d=\"M4 2C2.8 3.7 2 5.7 2 8\"/><path d=\"M22 8c0-2.3-.8-4.3-2-6\"/>", "book-open": "<path d=\"M12 7v14\"/><path d=\"M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z\"/>", "car": "<path d=\"M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2\"/><circle cx=\"7\" cy=\"17\" r=\"2\"/><path d=\"M9 17h6\"/><circle cx=\"17\" cy=\"17\" r=\"2\"/>", "circle-alert": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"12\" x2=\"12\" y1=\"8\" y2=\"12\"/><line x1=\"12\" x2=\"12.01\" y1=\"16\" y2=\"16\"/>", "clock": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><polyline points=\"12 6 12 12 16 14\"/>", "cloud": "<path d=\"M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z\"/>", "cloud-rain": "<path d=\"M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242\"/><path d=\"M16 14v6\"/><path d=\"M8 14v6\"/><path d=\"M12 16v6\"/>", "credit-card": "<rect width=\"20\" height=\"14\" x=\"2\" y=\"5\" rx=\"2\"/><line x1=\"2\" x2=\"22\" y1=\"10\" y2=\"10\"/>", "cylinder": "<ellipse cx=\"12\" cy=\"5\" rx=\"9\" ry=\"3\"/><path d=\"M3 5v14a9 3 0 0 0 18 0V5\"/>", "door-closed": "<path d=\"M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14\"/><path d=\"M2 20h20\"/><path d=\"M14 12v.01\"/>", "door-open": "<path d=\"M13 4h3a2 2 0 0 1 2 2v14\"/><path d=\"M2 20h3\"/><path d=\"M13 20h9\"/><path d=\"M10 12v.01\"/><path d=\"M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1A2 2 0 0 1 13 4.561Z\"/>", "droplets": "<path d=\"M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z\"/><path d=\"M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97\"/>", "factory": "<path d=\"M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z\"/><path d=\"M17 18h1\"/><path d=\"M12 18h1\"/><path d=\"M7 18h1\"/>", "fan": "<path d=\"M10.827 16.379a6.082 6.082 0 0 1-8.618-7.002l5.412 1.45a6.082 6.082 0 0 1 7.002-8.618l-1.45 5.412a6.082 6.082 0 0 1 8.618 7.002l-5.412-1.45a6.082 6.082 0 0 1-7.002 8.618l1.45-5.412Z\"/><path d=\"M12 12v.01\"/>", "fence": "<path d=\"M4 3 2 5v15c0 .6.4 1 1 1h2c.6 0 1-.4 1-1V5Z\"/><path d=\"M6 8h4\"/><path d=\"M6 18h4\"/><path d=\"m12 3-2 2v15c0 .6.4 1 1 1h2c.6 0 1-.4 1-1V5Z\"/><path d=\"M14 8h4\"/><path d=\"M14 18h4\"/><path d=\"m20 3-2 2v15c0 .6.4 1 1 1h2c.6 0 1-.4 1-1V5Z\"/>", "footprints": "<path d=\"M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z\"/><path d=\"M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z\"/><path d=\"M16 17h4\"/><path d=\"M4 13h4\"/>", "hand": "<path d=\"M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2\"/><path d=\"M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2\"/><path d=\"M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8\"/><path d=\"M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15\"/>", "hourglass": "<path d=\"M5 22h14\"/><path d=\"M5 2h14\"/><path d=\"M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22\"/><path d=\"M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2\"/>", "key-round": "<path d=\"M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z\"/><circle cx=\"16.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\"/>", "lamp-desk": "<path d=\"m14 5-3 3 2 7 8-8-7-2Z\"/><path d=\"m14 5-3 3-3-3 3-3 3 3Z\"/><path d=\"M9.5 6.5 4 12l3 6\"/><path d=\"M3 22v-2c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v2H3Z\"/>", "lamp-floor": "<path d=\"M9 2h6l3 7H6l3-7Z\"/><path d=\"M12 9v13\"/><path d=\"M9 22h6\"/>", "lightbulb": "<path d=\"M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5\"/><path d=\"M9 18h6\"/><path d=\"M10 22h4\"/>", "plug-zap": "<path d=\"M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z\"/><path d=\"m2 22 3-3\"/><path d=\"M7.5 13.5 10 11\"/><path d=\"M10.5 16.5 13 14\"/><path d=\"m18 3-4 4h6l-4 4\"/>", "power": "<path d=\"M12 2v10\"/><path d=\"M18.4 6.6a9 9 0 1 1-12.77.04\"/>", "shield-check": "<path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"/><path d=\"m9 12 2 2 4-4\"/>", "siren": "<path d=\"M7 18v-6a5 5 0 1 1 10 0v6\"/><path d=\"M5 21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z\"/><path d=\"M21 12h1\"/><path d=\"M18.5 4.5 18 5\"/><path d=\"M2 12h1\"/><path d=\"M12 2v1\"/><path d=\"m4.929 4.929.707.707\"/><path d=\"M12 12v6\"/>", "smartphone": "<rect width=\"14\" height=\"20\" x=\"5\" y=\"2\" rx=\"2\" ry=\"2\"/><path d=\"M12 18h.01\"/>", "sprout": "<path d=\"M7 20h10\"/><path d=\"M10 20c5.5-2.5.8-6.4 3-10\"/><path d=\"M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z\"/><path d=\"M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z\"/>", "sun": "<circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2\"/><path d=\"M12 20v2\"/><path d=\"m4.93 4.93 1.41 1.41\"/><path d=\"m17.66 17.66 1.41 1.41\"/><path d=\"M2 12h2\"/><path d=\"M20 12h2\"/><path d=\"m6.34 17.66-1.41 1.41\"/><path d=\"m19.07 4.93-1.41 1.41\"/>", "thermometer": "<path d=\"M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z\"/>", "toggle-right": "<rect width=\"20\" height=\"12\" x=\"2\" y=\"6\" rx=\"6\" ry=\"6\"/><circle cx=\"16\" cy=\"12\" r=\"2\"/>", "triangle-alert": "<path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\"/><path d=\"M12 9v4\"/><path d=\"M12 17h.01\"/>", "user-round": "<circle cx=\"12\" cy=\"8\" r=\"5\"/><path d=\"M20 21a8 8 0 0 0-16 0\"/>", "washing-machine": "<path d=\"M3 6h3\"/><path d=\"M17 6h.01\"/><rect width=\"18\" height=\"20\" x=\"3\" y=\"2\" rx=\"2\"/><circle cx=\"12\" cy=\"13\" r=\"5\"/><path d=\"M12 18a2.5 2.5 0 0 0 0-5 2.5 2.5 0 0 1 0-5\"/>", "waves": "<path d=\"M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1\"/><path d=\"M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1\"/><path d=\"M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1\"/>"};
+const SC_IKON = {"Mesin basuh": ["door-closed", "power", null, "washing-machine"], "Mesin tebuk bengkel": ["hand", "hand", null, "factory"], "Loceng rumah": ["door-closed", "door-closed", null, "bell-ring"], "Lampu bilik kuliah": ["toggle-right", "toggle-right", null, "lightbulb"], "Lampu taman": ["sun", null, null, "lamp-floor"], "Amaran tangki air": ["droplets", null, null, "triangle-alert"], "Penggera rumah": ["door-open", "shield-check", "circle-alert", "siren"], "Pagar automatik": ["credit-card", "car", "user-round", "fence"], "Kipas siling": ["toggle-right", "smartphone", "plug-zap", "fan"], "Lif kolej": ["arrow-up", "arrow-down", "door-closed", "arrow-up-down"], "Lampu amaran makmal": ["door-closed", "door-closed", null, "triangle-alert"], "Mesin ATM": ["credit-card", "key-round", null, "hourglass"], "Lampu selamat dapur": ["cloud", "thermometer", null, "shield-check"], "Bilik mesyuarat": ["ban", "ban", null, "door-open"], "Lampu koridor": ["sun", "footprints", null, "lightbulb"], "Penyiram pokok": ["cloud-rain", "clock", null, "sprout"], "Pam air": ["cylinder", "hand", null, "waves"], "Lampu meja belajar": ["sun", "book-open", null, "lamp-desk"]};
+/* Ikon: Lucide (ISC License, lucide.dev) */
+function ikon(n) { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IKON[n] || IKON["lightbulb"]}</svg>`; }
+function gateMini(t) {
+  const st = 'fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"';
+  const leads = t === "NOT" ? '<path d="M2 15 H10" stroke="currentColor" stroke-width="2"/>' : '<path d="M2 9 H10 M2 21 H10" stroke="currentColor" stroke-width="2"/>';
+  const body = t === "AND" ? `<path d="M10 4 H22 A11 11 0 0 1 22 26 H10 Z" ${st}/><path d="M33 15 H44" stroke="currentColor" stroke-width="2"/>`
+    : t === "OR" ? `<path d="M9 4 Q15 15 9 26 Q26 26 35 15 Q26 4 9 4 Z" ${st}/><path d="M35 15 H44" stroke="currentColor" stroke-width="2"/>`
+    : `<path d="M10 5 L10 25 L30 15 Z" ${st}/><circle cx="33.5" cy="15" r="3.5" ${st}/><path d="M37 15 H44" stroke="currentColor" stroke-width="2"/>`;
+  return `<svg viewBox="0 0 46 30" style="color:var(--silk)" aria-hidden="true">${leads}${body}</svg>`;
+}
+function sceneHtml(c) {
+  const ic = SC_IKON[c.sc.tajuk] || [];
+  const idx = { A: 0, B: 1, C: 2 };
+  const ins = c.inputs.map(x => `<div class="tile"><span class="ic">${ikon(ic[idx[x]])}<b>${x}</b></span><span class="tx"><small>INPUT ${x}</small>${esc(c.sc[x])}</span></div>`).join("");
+  const gates = c.gates.map(g => `<div class="gate">${gateMini(g.type)}<span>${g.type}</span></div>`).join('<span class="arr">↓</span>');
+  return `<div class="scene" role="img" aria-label="${esc(`${c.sc.tajuk}: ${c.inputs.map(x => `${x} ialah ${c.sc[x]}`).join(", ")}, melalui get ${c.gates.map(g => g.type).join(" kemudian ")}, keluar sebagai ${c.sc.Y}`)}">
+    <div class="scene-in">${ins}</div>
+    <div class="scene-mid"><span class="arr">→</span><div class="gates">${gates}</div><span class="arr">→</span></div>
+    <div class="tile out"><span class="ic">${ikon(ic[3])}<b>Y</b></span><span class="tx"><small>OUTPUT · LED</small>${esc(c.sc.Y)}</span></div>
+  </div><p class="scene-cap">1 = ya, 0 = tidak. Contoh: A = 1 bermaksud jawapan untuk "${esc(c.sc.A)}" ialah ya.</p>`;
+}
 const PLAIN = {
   and: "LED menyala hanya bila A dan B kedua-duanya 1.",
   or: "LED menyala bila A atau B ialah 1 (atau kedua-duanya).",
@@ -835,7 +919,7 @@ function stepBody(n) {
   const c = S.kes;
   if (n === 1) {
     const types = [...new Set(c.gates.map(g => g.type))];
-    return `<p><b>${esc(c.sc.tajuk)}.</b> ${esc(c.sc.cerita)}</p><p>Dalam litar: ${c.inputs.map(x => `<b>${x}</b> = ${esc(c.sc[x])}`).join(", ")}, dan LED = ${esc(c.sc.Y)}.</p>
+    return `${sceneHtml(c)}<p><b>${esc(c.sc.tajuk)}.</b> ${esc(c.sc.cerita)}</p><p>Dalam litar: ${c.inputs.map(x => `<b>${x}</b> = ${esc(c.sc[x])}`).join(", ")}, dan LED = ${esc(c.sc.Y)}.</p>
       <p>Jadi litar ni ikut <b>${c.tpl.html}</b>. Maksudnya: ${PLAIN[c.tpl.id]}</p>
       <div class="rules">${types.map(t => `<div class="rule"><b>${t}</b><span>${RULE[t]}</span></div>`).join("")}</div>
       <p class="tip">Tapi ada laporan masalah: ${c.gejala} Tugas awak: cari bahagian mana yang rosak.</p>
@@ -856,15 +940,17 @@ function stepBody(n) {
     const st = ujiStatus();
     let msg = st.tried < st.total ? `<p class="tip">Dah cuba ${st.tried} daripada ${st.total} baris. Klik kotak suis pada papan untuk cuba baris lain.</p>` : "";
     if (st.tried === st.total) msg = `<p class="badmsg">LED buat perangai pada ${st.bad.length} baris: ${st.bad.map(r => rowLabel(c, r.inp)).join("; ")}.</p>`;
-    return `<p>Tukar suis pada papan (klik kotak A, B${c.inputs.includes("C") ? ", C" : ""}). Jadual di bawah isi sendiri bila LED berubah.</p>
+    return `<p>Sekarang uji litar sebenar. <b>Papan litar</b> ada di bawah panel ni, dalam kotak hijau. Tukar suis dengan klik kotak ${c.inputs.join(", ")} di sebelah kiri papan, atau guna butang suis ni (sama saja):</p>
+      ${swRow(c)}
+      <p>Setiap kali suis bertukar, tengok LED. Jadual ni isi sendiri:</p>
       ${ttTable("uji")}${msg}
       ${st.tried === st.total ? `<div class="row-actions"><button class="btn primary" data-go="4">Seterusnya: cari punca</button></div>` : ""}`;
   }
   if (n === 4) {
     const st = ujiStatus(), bad = st.bad[0] || (c.mm[0]);
     const types = [...new Set(c.gates.map(g => g.type))];
-    return `<p>Set suis ikut baris yang salah, kemudian klik bulatan kelabu dari <b>kiri ke kanan</b>: suis → pin input → pin output → Y. Nilai 1, 0 atau ? muncul di bawah setiap bulatan.</p>
-      <div class="row-actions"><button class="btn" id="btnSetBad">Set suis ke ${rowLabel(c, bad.inp)}</button></div>
+    return `<p>Set suis ikut baris yang salah, kemudian pergi ke papan dan klik bulatan kelabu dari <b>kiri ke kanan</b>: suis → pin input → pin output → Y. Nilai 1, 0 atau ? muncul di bawah setiap bulatan.</p>
+      <div class="row-actions"><button class="btn" id="btnSetBad">Set suis ke ${rowLabel(c, bad.inp)}</button><button class="btn" data-papan>Tunjuk papan ↓</button></div>
       <div class="rules">${types.map(t => `<div class="rule"><b>${t}</b><span>${RULE[t]}</span></div>`).join("")}</div>
       <p class="tip">Cari titik pertama yang nilainya tak ikut peraturan get. Tanda <b style="color:var(--z)">?</b> bermaksud titik tu terapung, tak bersambung. Jangan lupa bulatan VCC 14 di atas setiap IC.</p>
       <div class="row-actions"><button class="btn primary" data-go="5">Saya dah jumpa punca</button></div>`;
@@ -885,6 +971,17 @@ function stepBody(n) {
     <p class="lbl">3. Bukti awak (tak wajib, tapi dapat markah lebih)</p>
     <textarea id="dAlasan" placeholder="Contoh: A=0 B=0, U1 pin 3 tetap 1 walaupun input dua-dua 0.">${esc(S.alasan || "")}</textarea>
     <div class="row-actions"><button class="btn primary" id="btnDiag" ${S.dk && S.dj ? "" : "disabled"}>Hantar jawapan</button></div>`;
+}
+function swRow(c) {
+  return `<div class="swrow">${c.inputs.map(x => `<button class="swbtn" data-tsw="${x}" aria-pressed="${!!S.inp[x]}" aria-label="Tukar suis ${x}, sekarang ${S.inp[x]}"><b>${x}</b> = ${S.inp[x]}</button>`).join("")}
+    <button class="btn" data-papan>Tunjuk papan ↓</button></div>`;
+}
+function tunjukPapan() {
+  const w = document.querySelector(".board-wrap");
+  if (!w) return;
+  w.scrollIntoView({ behavior: "smooth", block: "center" });
+  w.classList.remove("spot"); void w.offsetWidth; w.classList.add("spot");
+  clearTimeout(tunjukPapan.t); tunjukPapan.t = setTimeout(() => w.classList.remove("spot"), 2600);
 }
 function stepSub(n) {
   if (n === 2) { const s = ramalanStatus(); return s.ok && S.ramalanDisemak ? "betul" : `${s.filled}/${s.total}`; }
@@ -913,6 +1010,12 @@ function renderSteps() {
   box.querySelectorAll(".bit button").forEach(b => b.addEventListener("click", () => { S.exp[+b.dataset.row] = +b.dataset.v; renderSteps(); }));
   box.querySelectorAll("[data-dk]").forEach(b => b.addEventListener("click", () => { S.dk = b.dataset.dk; renderSteps(); }));
   box.querySelectorAll("[data-dj]").forEach(b => b.addEventListener("click", () => { S.dj = b.dataset.dj; renderSteps(); }));
+  box.querySelectorAll("[data-tsw]").forEach(b => b.addEventListener("click", () => {
+    const x = b.dataset.tsw; toggleInput(x);
+    const nb = $("steps").querySelector(`[data-tsw="${x}"]`); if (nb) nb.focus();
+  }));
+  box.querySelectorAll("[data-papan]").forEach(b => b.addEventListener("click", tunjukPapan));
+  $("board").classList.toggle("nudge", S.step === 3 && ujiStatus().tried < ujiStatus().total);
   const ck = $("btnCheckRamal"); if (ck) ck.addEventListener("click", checkRamalan);
   const sb = $("btnSetBad"); if (sb) sb.addEventListener("click", () => {
     const bad = ujiStatus().bad[0] || S.kes.mm[0];
@@ -1130,6 +1233,7 @@ function sendMail() {
   if (body.length > 1800) body = body.slice(0, 1800) + "\n...(laporan dipendekkan, salin laporan penuh dari app)";
   const a = document.createElement("a");
   a.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+  if (GAS) { a.target = "_blank"; a.rel = "noopener"; }
   document.body.appendChild(a); a.click(); a.remove();
   repMsg(`Aplikasi emel sepatutnya terbuka dengan laporan untuk ${to}. Tekan Hantar di sana. Kalau tiada apa berlaku, tekan Salin laporan dan paste dalam emel atau WhatsApp.`);
 }
@@ -1176,7 +1280,7 @@ function renderHome() {
   const sedang = S.started && !S.sesi.tamat && !sesiHabis();
   $("btnResume").hidden = !sedang;
   $("btnStart").textContent = sedang ? "Mula sesi baharu" : "Mula siasatan";
-  $("homeEngine").textContent = { demo: "Demo berskrip", gemini: "Gemini", deepseek: "DeepSeek" }[S.engine] + (S.engine !== "demo" && S.proxyUrl ? " (melalui pelayan perantara)" : "");
+  $("homeEngine").textContent = { demo: "Demo berskrip", gemini: "Gemini", deepseek: "DeepSeek" }[S.engine] + (S.engine !== "demo" && perantara() ? " (melalui pelayan perantara)" : "");
 }
 function showHome() {
   $("home").hidden = false; $("game").hidden = true; document.body.classList.add("at-home");
@@ -1201,7 +1305,7 @@ function startGame() {
   startCase(makeCase(HOME.tahap, awal, null));
   addTrace("HASIL", "jana_kes", short({ kes_no: S.kesNo, senario: S.kes.sc.tajuk, ungkapan: S.kes.tpl.txt, gejala: S.kes.gejala }));
   const sapa = S.nama ? `Selamat datang, Detektif ${S.nama}.` : "Selamat datang, detektif.";
-  addMsg("Inspektor Volt", `${sapa} Sesi ni ada ${HOME.len} kes. Kes pertama: **${S.kes.sc.tajuk}** yang buat perangai. Ikut langkah di sebelah kanan satu per satu. Kalau buntu, tekan Saya buntu dan saya bantu.`);
+  addMsg("Inspektor Volt", `${sapa} Sesi ni ada ${HOME.len} kes. Kes pertama: **${S.kes.sc.tajuk}** yang buat perangai. Ikut langkah di kotak Langkah penyiasatan satu per satu. Kalau buntu, tekan Saya buntu dan saya bantu.`);
   S.started = true;
   showGame();
 }
@@ -1622,12 +1726,24 @@ function geminiError(e) {
 }
 
 /* ================= PANGGILAN API (terus atau melalui Apps Script) ================= */
+function gasCall(req, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal) signal.addEventListener("abort", () => { const e = new Error("aborted"); e.name = "AbortError"; reject(e); });
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(err => reject(mkErr(String((err && err.message) || err), undefined, { proxyBad: true }))).proxyCall(req);
+  });
+}
 async function apiFetch(provider, directUrl, init, extra) {
-  if (!S.proxyUrl) return fetch(directUrl, init);
-  const r = await fetch(S.proxyUrl, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow",
-    body: JSON.stringify({ provider, kod: S.proxyKod, ...extra }), signal: init.signal });
+  if (!perantara()) return fetch(directUrl, init);
+  const req = { provider, kod: S.proxyKod, ...extra };
   let j;
-  try { j = await r.json(); } catch (_) { throw mkErr("Jawapan pelayan perantara tak sah", undefined, { proxyBad: true }); }
+  if (GAS) {
+    j = await gasCall(req, init.signal);
+    if (!j || typeof j !== "object") throw mkErr("Jawapan pelayan tak sah", undefined, { proxyBad: true });
+  } else {
+    const r = await fetch(S.proxyUrl, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow",
+      body: JSON.stringify(req), signal: init.signal });
+    try { j = await r.json(); } catch (_) { throw mkErr("Jawapan pelayan perantara tak sah", undefined, { proxyBad: true }); }
+  }
   if (j.ralat) throw mkErr(j.mesej || j.ralat, j.status, { proxyCode: j.ralat });
   return { ok: j.status >= 200 && j.status < 300, status: j.status, text: async () => j.body || "", json: async () => JSON.parse(j.body) };
 }
@@ -1760,7 +1876,7 @@ async function demoAgent(ev) {
     await demoStep("rancang", { matlamat: `Latih "${KEMAHIRAN[skill]}" pada tahap ${tahap}`,
       langkah: [`Jana kes tahap ${tahap} yang melatih ${KEMAHIRAN[skill].toLowerCase()}`, "Bimbing pelajar ikut 5 langkah", "Beri petunjuk hanya bila pelajar buntu"] });
     const k = await demoStep("jana_kes", { tahap, kerosakan: fault });
-    await say(`Kes #${k.kes_no}: **${k.senario}**. ${k.cerita} Tapi ada laporan: ${k.gejala} Mula dari langkah 1 di sebelah kanan.`);
+    await say(`Kes #${k.kes_no}: **${k.senario}**. ${k.cerita} Tapi ada laporan: ${k.gejala} Mula dari langkah 1 dalam kotak Langkah penyiasatan.`);
     return;
   }
   if (ev.type === "semak_ramalan") {
@@ -1944,14 +2060,14 @@ async function runAgent(ev, displayText) {
   S.curType = ev.type;
   setBusy(true);
   S.evProfil = false; S.evSwitched = false;
-  S.deadline = Date.now() + (ev.type === "tunjuk_cara" ? 60000 : 25000) + (S.proxyUrl ? 10000 : 0);
+  S.deadline = Date.now() + (ev.type === "tunjuk_cara" ? 60000 : 25000) + (perantara() ? 10000 : 0);
   const snap = { kesNo: S.kesNo, hints: S.hints };
   try {
     if (S.engine === "gemini" || S.engine === "deepseek") {
       const ds = S.engine === "deepseek";
-      if (S.proxyUrl && !S.proxyKod) { addMsg("Inspektor Volt", "Masukkan kod akses dalam Tetapan dulu, atau tukar ke Demo berskrip.", "agent err"); return; }
-      if (!S.proxyUrl && !ds && !S.apiKey) { addMsg("Inspektor Volt", "Masukkan Gemini API key dalam Tetapan dulu, atau tukar ke Demo berskrip.", "agent err"); return; }
-      if (!S.proxyUrl && ds && !S.dsKey) { addMsg("Inspektor Volt", "Masukkan DeepSeek API key dalam Tetapan dulu, atau tukar ke Demo berskrip.", "agent err"); return; }
+      if (perantara() && !S.proxyKod) { addMsg("Inspektor Volt", "Masukkan kod akses dalam Tetapan dulu, atau tukar ke Demo berskrip.", "agent err"); return; }
+      if (!perantara() && !ds && !S.apiKey) { addMsg("Inspektor Volt", "Masukkan Gemini API key dalam Tetapan dulu, atau tukar ke Demo berskrip.", "agent err"); return; }
+      if (!perantara() && ds && !S.dsKey) { addMsg("Inspektor Volt", "Masukkan DeepSeek API key dalam Tetapan dulu, atau tukar ke Demo berskrip.", "agent err"); return; }
       if (Date.now() < (S.geminiDownUntil || 0)) {
         const er = new Error(`${ds ? "DeepSeek" : "Gemini"} baru sahaja gagal, terus guna enjin sandaran buat seminit`); er.status = 503; er.skip = true; throw er;
       }
@@ -2032,7 +2148,7 @@ function setEngine(e) {
   $("eDemo").setAttribute("aria-pressed", e === "demo");
   $("eGem").setAttribute("aria-pressed", e === "gemini");
   $("eDs").setAttribute("aria-pressed", e === "deepseek");
-  $("enginePill").textContent = (e === "demo" ? "MOD DEMO" : e === "deepseek" ? "DEEPSEEK · " + S.dsModel.toUpperCase() : "GEMINI · " + S.model.toUpperCase()) + (e !== "demo" && S.proxyUrl ? " · PERANTARA" : "");
+  $("enginePill").textContent = (e === "demo" ? "MOD DEMO" : e === "deepseek" ? "DEEPSEEK · " + S.dsModel.toUpperCase() : "GEMINI · " + S.model.toUpperCase()) + (e !== "demo" && perantara() ? " · PERANTARA" : "");
   S.geminiDownUntil = 0;
   if (!$("home").hidden) renderHome();
 }
@@ -2066,7 +2182,7 @@ $("proxyUrl").addEventListener("input", e => {
 $("proxyKod").addEventListener("input", e => {
   S.proxyKod = e.target.value.trim();
   if ($("remember").checked) { try { localStorage.setItem("dl_kod", S.proxyKod); } catch (_) {} }
-  if (S.proxyKod && S.proxyUrl && S.engine === "demo") setEngine("gemini");
+  if (S.proxyKod && perantara() && S.engine === "demo") setEngine("gemini");
 });
 
 /* ================= MULA ================= */
@@ -2079,7 +2195,13 @@ $("proxyKod").addEventListener("input", e => {
     if (u) { $("proxyUrl").value = u; if (/^https:\/\/script\.google(usercontent)?\.com\//.test(u)) S.proxyUrl = u; }
     const kd = localStorage.getItem("dl_kod"); if (kd) { S.proxyKod = kd; $("proxyKod").value = kd; $("remember").checked = true; }
   } catch (_) { if (KONFIG.proxyUrl) { S.proxyUrl = KONFIG.proxyUrl; $("proxyUrl").value = KONFIG.proxyUrl; } }
-  setEngine(S.apiKey ? "gemini" : S.dsKey ? "deepseek" : (S.proxyUrl && S.proxyKod) ? "gemini" : "demo");
+  if (GAS) {
+    // Dihoskan oleh Apps Script: medan URL tak perlu, cuma kod akses
+    const lbl = $("proxyUrl").closest("label"); if (lbl) lbl.hidden = true;
+    const nota = $("proxyKod").closest("label").previousElementSibling.previousElementSibling;
+    if (nota && nota.classList.contains("note")) nota.textContent = "Laman ini dihoskan oleh Apps Script. API key disimpan di server; masukkan kod akses daripada pensyarah untuk guna Gemini atau DeepSeek.";
+  }
+  setEngine(S.apiKey ? "gemini" : S.dsKey ? "deepseek" : (perantara() && S.proxyKod) ? "gemini" : "demo");
   addTrace("ACARA", "Sistem mula");
   renderSkills();
   showHome();
