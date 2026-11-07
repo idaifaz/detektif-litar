@@ -698,7 +698,7 @@ const FAULTS = {
     hint: ["Logik yang betul belum tentu penunjuk output yang betul.",
            "Probe pin output get terakhir pada kombinasi yang sepatutnya nyalakan LED.",
            "Kalau output get TINGGI tapi LED tetap padam, masalahnya pada LED, bukan pada get."],
-    terang: () => `Get berfungsi dengan betul dan output Y jadi TINGGI bila patut. LED D1 sahaja yang putus, jadi ia tak pernah menyala.` },
+    terang: () => `Get berfungsi dengan betul dan output Y jadi TINGGI bila patut. LED D1 sahaja yang rosak (putus), jadi ia tak pernah menyala.` },
   wayar_putus: { nama: "Wayar input putus (input terapung)", jenis: "terbuka", kemahiran: "sambungan", tahap: 2,
     hint: ["Get yang elok pun beri output salah kalau inputnya salah. Semak input setiap get, bukan output sahaja.",
            "Probe di sumber isyarat (suis atau output get sebelum) dan di pin input get. Kedua-duanya patut sama.",
@@ -786,6 +786,8 @@ const JENIS_LABEL = {
   tersekat_0: "Output get sentiasa 0 (tak ikut input)", tersekat_1: "Output get sentiasa 1 (tak ikut input)",
   terbuka: "Putus / tak bersambung", tiada_kuasa: "IC tiada kuasa (pin 14)", salah_jenis: "IC salah jenis (get lain dipasang)"
 };
+// Untuk LED (D1), "terbuka" bermaksud LED itu sendiri rosak atau putus
+const labelJenis = (jenis, komp) => jenis === "terbuka" && komp === "D1" ? "Rosak / putus (LED tak boleh menyala)" : JENIS_LABEL[jenis];
 const STEP_NAMES = ["Faham litar", "Ramal jawapan", "Uji pada papan", "Siasat dengan probe", "Jawab"];
 
 /* ================= KEADAAN ================= */
@@ -982,7 +984,7 @@ function stepBody(n) {
   return buntu + `<p class="lbl">1. Bahagian mana yang rosak?</p>
     <div class="chips">${komp.map(([v, t]) => `<button class="chip" data-dk="${v}" aria-pressed="${S.dk === v}">${t}</button>`).join("")}</div>
     <p class="lbl">2. Apa yang rosak?</p>
-    <div class="chips">${allowed.map(v => `<button class="chip" data-dj="${v}" aria-pressed="${S.dj === v}">${JENIS_LABEL[v]}</button>`).join("")}</div>
+    <div class="chips">${allowed.map(v => `<button class="chip" data-dj="${v}" aria-pressed="${S.dj === v}">${labelJenis(v, S.dk)}</button>`).join("")}</div>
     <p class="lbl">3. Bukti awak (tak wajib, tapi dapat markah lebih)</p>
     <textarea id="dAlasan" placeholder="Contoh: A=0 B=0, U1 pin 3 tetap 1 walaupun input dua-dua 0.">${esc(S.alasan || "")}</textarea>
     <div class="row-actions"><button class="btn primary" id="btnDiag" ${S.dk && S.dj ? "" : "disabled"}>Hantar jawapan</button></div>`;
@@ -1207,7 +1209,7 @@ function submitDiagnosis() {
   S.alasan = alasan;
   const komponen = S.dk, jenis = S.dj;
   if (S.solved) return;
-  addMsg("Anda", `Jawapan saya: ${komponen}, ${JENIS_LABEL[jenis]}.${alasan ? " Bukti: " + alasan : ""}`);
+  addMsg("Anda", `Jawapan saya: ${komponen}, ${labelJenis(jenis, komponen)}.${alasan ? " Bukti: " + alasan : ""}`);
   // Semakan dibuat terus dalam app supaya tak bergantung pada Gemini
   const hasil = execTool("semak_diagnosis", { komponen, jenis });
   S.pendingDiag = { komponen, jenis, hasil };
@@ -2077,7 +2079,7 @@ async function demoExplain(text, say) {
   const nampak = text && (new RegExp(komp, "i").test(text) || (f.jenis === "led_rosak" && /led/i.test(text)));
   addTrace("FIKIR", "Nilai pemerhatian pelajar", nampak ? `Pelajar sebut ${komp}. Dia nampak puncanya.` : "Pelajar belum nampak puncanya. Terangkan terus.");
   const r = await demoStep("tunjuk_cara_selesai", { ringkasan: nampak ? "pelajar nampak sendiri" : "diterangkan" });
-  await say(`${nampak ? "Betul, awak dah nampak. " : ""}${r.penerangan} Jadi jawapannya: **${komp}, ${JENIS_LABEL[F.jenis]}**. Kes ni selesai dengan bantuan (+${r.xp_diberi} XP). Kes seterusnya saya pilih yang lebih mudah supaya awak boleh cuba sendiri.`);
+  await say(`${nampak ? "Betul, awak dah nampak. " : ""}${r.penerangan} Jadi jawapannya: **${komp}, ${labelJenis(F.jenis, komp)}**. Kes ni selesai dengan bantuan (+${r.xp_diberi} XP). Kes seterusnya saya pilih yang lebih mudah supaya awak boleh cuba sendiri.`);
 }
 
 /* ================= PENGHANTAR ================= */
