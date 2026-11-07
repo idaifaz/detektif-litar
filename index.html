@@ -125,6 +125,25 @@ button { cursor: pointer; }
 @media (min-width: 1000px) and (min-height: 760px) {
   .col-agent { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
 }
+/* Skrin lebar (1200px+): langkah | papan | Volt sebelah-menyebelah, papan & Volt melekat supaya tak perlu skrol cari papan */
+@media (min-width: 1200px) {
+  .wrap { max-width: 1840px; }
+  .grid { grid-template-columns: minmax(0, .95fr) minmax(0, 1.3fr) minmax(0, .8fr); grid-template-rows: auto; grid-template-areas: "steps board agent"; }
+  .col-board svg.board { min-width: 0; }
+  .col-agent .msgs { height: min(440px, calc(100vh - 300px)); }
+}
+@media (min-width: 1200px) and (max-width: 1499px) {
+  .col-steps .step-b { padding-left: 14px; }
+  .col-steps .tt th, .col-steps .tt td { padding: 5px 7px; }
+}
+@media (min-width: 1200px) and (min-height: 680px) {
+  .col-board { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+  .col-agent { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+}
+/* Skrin sederhana (1000-1199px): papan di atas, langkah terus di bawahnya, Volt di kanan */
+@media (min-width: 1000px) and (max-width: 1199px) {
+  .grid { grid-template-areas: "board agent" "steps agent"; }
+}
 .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .panel { --pbg: var(--mask-2); --pbd: var(--mask-3); --pin: var(--mask); --pacc: var(--copper);
   background: var(--pbg); border: 1px solid var(--pbd); border-radius: 10px; padding: 14px 16px; min-width: 0; }
@@ -973,7 +992,7 @@ function stepBody(n) {
     const st = ujiStatus();
     let msg = st.tried < st.total ? `<p class="tip">Dah cuba ${st.tried} daripada ${st.total} baris. Klik kotak suis pada papan untuk cuba baris lain.</p>` : "";
     if (st.tried === st.total) msg = `<p class="badmsg">LED buat perangai pada ${st.bad.length} baris: ${st.bad.map(r => rowLabel(c, r.inp)).join("; ")}.</p>`;
-    return `<p>Sekarang uji litar sebenar. <b>Papan litar</b> ada di bawah panel ni, dalam kotak hijau. Tukar suis dengan klik kotak ${c.inputs.join(", ")} di sebelah kiri papan, atau guna butang suis ni (sama saja):</p>
+    return `<p>Sekarang uji litar sebenar. <b>Papan litar</b> ialah kotak hijau. Tukar suis dengan klik kotak ${c.inputs.join(", ")} di sebelah kiri papan, atau guna butang suis ni (sama saja):</p>
       ${swRow(c)}
       <p>Setiap kali suis bertukar, tengok LED. Jadual ni isi sendiri:</p>
       ${ttTable("uji")}${msg}
@@ -987,7 +1006,7 @@ function stepBody(n) {
       <p><b>Apa itu probe?</b> Logic probe ialah alat uji berbentuk pen. Hujungnya disentuh pada satu titik litar, dan lampu pada probe beritahu nilai di titik tu: <b style="color:var(--hi)">HI = 1</b>, <b style="color:var(--lo)">LO = 0</b>, tiada lampu = <b style="color:var(--z)">?</b> (tak bersambung).<br>Pada papan, setiap <b>bulatan kelabu kecil</b> ialah titik yang boleh disentuh. Klik satu bulatan, pen probe akan muncul di situ dan bacaannya keluar di kotak <b>Logic probe</b> bawah papan.</p></div>
       ${baru ? `<div class="row-actions"><button class="btn primary" id="btnFirstProbe">Cuba probe titik pertama (suis ${c.inputs[0]})</button></div>` : ""}
       <p>Set suis ikut baris yang salah, kemudian probe dari <b>kiri ke kanan</b>: suis → pin input get → pin output get → Y. Nilai 1, 0 atau ? akan melekat di sebelah setiap bulatan yang dah diprobe.</p>
-      <div class="row-actions"><button class="btn" id="btnSetBad">Set suis ke ${rowLabel(c, bad.inp)}</button><button class="btn" data-papan>Tunjuk papan ↓</button></div>
+      <div class="row-actions"><button class="btn" id="btnSetBad">Set suis ke ${rowLabel(c, bad.inp)}</button><button class="btn" data-papan>Tunjuk papan</button></div>
       <div class="rules">${types.map(t => `<div class="rule"><b>${t}</b><span>${RULE[t]}</span></div>`).join("")}</div>
       <p class="tip">Cari titik pertama yang nilainya tak ikut peraturan get. Tanda <b style="color:var(--z)">?</b> bermaksud titik tu terapung, tak bersambung. Jangan lupa bulatan VCC 14 di atas setiap IC.</p>
       <div class="row-actions"><button class="btn primary" data-go="5">Saya dah jumpa punca</button></div>`;
@@ -1011,7 +1030,7 @@ function stepBody(n) {
 }
 function swRow(c) {
   return `<div class="swrow">${c.inputs.map(x => `<button class="swbtn" data-tsw="${x}" aria-pressed="${!!S.inp[x]}" aria-label="Tukar suis ${x}, sekarang ${S.inp[x]}"><b>${x}</b> = ${S.inp[x]}</button>`).join("")}
-    <button class="btn" data-papan>Tunjuk papan ↓</button></div>`;
+    <button class="btn" data-papan>Tunjuk papan</button></div>`;
 }
 function tunjukPapan() {
   const w = document.querySelector(".board-wrap");
