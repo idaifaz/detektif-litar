@@ -148,6 +148,17 @@ button { cursor: pointer; }
 @keyframes spot { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 4px #8fe0b0; } }
 .board.nudge .sw > rect:first-child { animation: swPulse 1.4s ease-in-out infinite; }
 @keyframes swPulse { 50% { stroke: #b9f5cf; stroke-width: 4; } }
+.phase { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; }
+.phase span { font: 600 12px var(--f-display); letter-spacing: .04em; padding: 4px 10px; border-radius: 999px; border: 1px solid #3a4440; color: var(--silk-dim); }
+.phase span.on { border-color: var(--copper); color: var(--silk); background: #1f4d38; }
+.phase span.done { color: #5ccf8c; border-color: #2f6b4c; }
+.phase span.done::before { content: "✓ "; }
+#boardDock { margin: 10px 0 12px; padding: 10px; border: 1px solid var(--pbd); border-radius: 10px; background: rgba(0,0,0,.18); }
+#boardDock .board-title { margin-top: 0; }
+.board-away { margin: 12px 0 0; padding: 10px 12px; border: 1px dashed #3a4440; border-radius: 8px; color: var(--silk-dim); font-size: 13.5px; }
+.tt-mini { margin: 10px 0; }
+.tt-mini summary { cursor: pointer; color: var(--silk-dim); font-size: 13.5px; }
+@media (max-width: 560px) { #boardDock { padding: 6px; margin-left: -6px; margin-right: -6px; } }
 .swrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0; }
 .swbtn { font: 600 14px var(--f-mono); padding: 7px 14px; border-radius: 8px; border: 2px solid var(--silk-dim); background: var(--mask); color: var(--silk); cursor: pointer; }
 .swbtn[aria-pressed="true"] { background: #1f4d38; border-color: var(--copper); }
@@ -531,6 +542,7 @@ body.at-home .stats, body.at-home #btnBrain, body.at-home #btnHome { display: no
         <p id="caseStory" style="margin:6px 0 0;max-width:68ch"></p>
         <p class="lbl" id="caseMap" style="margin:4px 0 0"></p>
         <p class="symptom" id="caseSymptom"></p>
+        <div id="boardHome"><div id="boardUnit">
         <p class="eyebrow board-title" id="papanTitle">Papan litar <span>Kotak A, B di kiri ialah suis. Bulatan LED di kanan.</span></p>
         <div class="board-wrap"><svg class="board" id="board" viewBox="0 0 660 290" role="img" aria-label="Litar get logik"></svg></div>
         <div class="legend">
@@ -545,6 +557,8 @@ body.at-home .stats, body.at-home #btnBrain, body.at-home #btnHome { display: no
           <span class="read" id="lpRead">Probe belum diletak</span>
           <span class="where" id="lpWhere"></span>
         </div>
+        </div></div>
+        <p class="board-away" id="boardAway" hidden>Papan litar sedang dipaparkan dalam langkah 3 (Uji &amp; siasat) di atas.</p>
       </section>
     </div>
 
@@ -790,7 +804,7 @@ const JENIS_LABEL = {
 };
 // Untuk LED (D1), "terbuka" bermaksud LED itu sendiri rosak atau putus
 const labelJenis = (jenis, komp) => jenis === "terbuka" && komp === "D1" ? "Rosak / putus (LED tak boleh menyala)" : JENIS_LABEL[jenis];
-const STEP_NAMES = ["Faham litar", "Ramal jawapan", "Uji pada papan", "Siasat dengan probe", "Jawab"];
+const STEP_NAMES = ["Faham litar", "Ramal jawapan", "Uji & siasat", "Jawab"];
 
 /* ================= KEADAAN ================= */
 const S = {
@@ -952,29 +966,34 @@ function stepBody(n) {
       ${st.ok && S.ramalanDisemak ? `<button class="btn primary" data-go="3">Seterusnya</button>` : ""}</div>`;
   }
   if (n === 3) {
-    const st = ujiStatus();
-    let msg = st.tried < st.total ? `<p class="tip">Dah cuba ${st.tried} daripada ${st.total} baris. Klik kotak suis pada papan untuk cuba baris lain.</p>` : "";
-    if (st.tried === st.total) msg = `<p class="badmsg">LED buat perangai pada ${st.bad.length} baris: ${st.bad.map(r => rowLabel(c, r.inp)).join("; ")}.</p>`;
-    return `<p>Sekarang uji litar sebenar. <b>Papan litar</b> ada di bawah panel ni, dalam kotak hijau. Tukar suis dengan klik kotak ${c.inputs.join(", ")} di sebelah kiri papan, atau guna butang suis ni (sama saja):</p>
-      ${swRow(c)}
-      <p>Setiap kali suis bertukar, tengok LED. Jadual ni isi sendiri:</p>
-      ${ttTable("uji")}${msg}
-      ${st.tried === st.total ? `<div class="row-actions"><button class="btn primary" data-go="4">Seterusnya: cari punca</button></div>` : ""}`;
-  }
-  if (n === 4) {
-    const st = ujiStatus(), bad = st.bad[0] || (c.mm[0]);
+    // Uji & siasat: papan litar dimasukkan ke dalam kotak ni (#boardDock)
+    const st = ujiStatus(), siap = st.tried === st.total;
+    const fasa = `<div class="phase"><span class="${siap ? "done" : "on"}">A. Uji suis</span><span class="${siap ? "on" : ""}">B. Siasat dengan probe</span></div>`;
+    if (!siap) {
+      return `${fasa}
+        <p><b>A. Uji suis.</b> Klik kotak suis ${c.inputs.join(", ")} di sebelah kiri papan (atau butang di bawah) untuk tukar 0 ↔ 1. Setiap kali suis bertukar, tengok LED. Jadual di bawah papan isi sendiri.</p>
+        ${swRow(c)}
+        <div id="boardDock"></div>
+        ${ttTable("uji")}
+        <p class="tip">Dah cuba ${st.tried} daripada ${st.total} baris. Cuba semua baris untuk tahu bila LED buat perangai.</p>`;
+    }
+    const bad = st.bad[0] || c.mm[0];
     const types = [...new Set(c.gates.map(g => g.type))];
     const baru = S.probed.size === 0;
-    return `<div class="probe-explain"><span class="pic">${probeIcon(96)}</span>
-      <p><b>Apa itu probe?</b> Logic probe ialah alat uji berbentuk pen. Hujungnya disentuh pada satu titik litar, dan lampu pada probe beritahu nilai di titik tu: <b style="color:var(--hi)">HI = 1</b>, <b style="color:var(--lo)">LO = 0</b>, tiada lampu = <b style="color:var(--z)">?</b> (tak bersambung).<br>Pada papan, setiap <b>bulatan kelabu kecil</b> ialah titik yang boleh disentuh. Klik satu bulatan, pen probe akan muncul di situ dan bacaannya keluar di kotak <b>Logic probe</b> bawah papan.</p></div>
-      ${baru ? `<div class="row-actions"><button class="btn primary" id="btnFirstProbe">Cuba probe titik pertama (suis ${c.inputs[0]})</button></div>` : ""}
-      <p>Set suis ikut baris yang salah, kemudian probe dari <b>kiri ke kanan</b>: suis → pin input get → pin output get → Y. Nilai 1, 0 atau ? akan melekat di sebelah setiap bulatan yang dah diprobe.</p>
-      <div class="row-actions"><button class="btn" id="btnSetBad">Set suis ke ${rowLabel(c, bad.inp)}</button><button class="btn" data-papan>Tunjuk papan ↓</button></div>
+    return `${fasa}
+      <p class="badmsg">LED buat perangai pada ${st.bad.length} baris: ${st.bad.map(r => rowLabel(c, r.inp)).join("; ")}.</p>
+      <div class="probe-explain"><span class="pic">${probeIcon(96)}</span>
+      <p><b>B. Siasat dengan probe.</b> Logic probe ialah alat uji berbentuk pen. Klik mana-mana <b>bulatan kelabu kecil</b> pada papan: pen probe akan sentuh titik tu, dan lampunya beritahu nilai di situ. <b style="color:var(--hi)">HI = 1</b>, <b style="color:var(--lo)">LO = 0</b>, tiada lampu = <b style="color:var(--z)">?</b> (tak bersambung).</p></div>
+      <div class="row-actions"><button class="btn ${baru ? "" : "primary"}" id="btnSetBad">1. Set suis ke ${rowLabel(c, bad.inp)}</button>
+        ${baru ? `<button class="btn primary" id="btnFirstProbe">2. Cuba probe titik pertama (suis ${c.inputs[0]})</button>` : ""}</div>
+      <div id="boardDock"></div>
+      <p>Probe dari <b>kiri ke kanan</b>: suis → pin input get → pin output get → Y. Nilai 1, 0 atau ? melekat di sebelah setiap bulatan yang dah diprobe.</p>
       <div class="rules">${types.map(t => `<div class="rule"><b>${t}</b><span>${RULE[t]}</span></div>`).join("")}</div>
       <p class="tip">Cari titik pertama yang nilainya tak ikut peraturan get. Tanda <b style="color:var(--z)">?</b> bermaksud titik tu terapung, tak bersambung. Jangan lupa bulatan VCC 14 di atas setiap IC.</p>
-      <div class="row-actions"><button class="btn primary" data-go="5">Saya dah jumpa punca</button></div>`;
+      <details class="tt-mini"><summary>Lihat semula jadual uji</summary>${ttTable("uji")}</details>
+      <div class="row-actions"><button class="btn primary" data-go="4">Saya dah jumpa punca</button></div>`;
   }
-  // n === 5
+  // n === 4 (Jawab)
   if (S.solved) {
     const habis = sesiHabis();
     return `<div class="solved"><b>${S.lastResult || "Kes selesai."}</b><span class="tip">${habis ? "Itu kes terakhir dalam sesi ni." : `Tinggal ${S.sesi.jumlah - S.sesi.rekod.length} kes lagi.`}</span><button class="btn primary" id="btnNext" ${S.mintaKes ? "disabled" : ""}>${S.mintaKes ? "Sedang sediakan kes..." : habis ? "Lihat keputusan sesi" : "Kes seterusnya"}</button></div>`;
@@ -993,7 +1012,7 @@ function stepBody(n) {
 }
 function swRow(c) {
   return `<div class="swrow">${c.inputs.map(x => `<button class="swbtn" data-tsw="${x}" aria-pressed="${!!S.inp[x]}" aria-label="Tukar suis ${x}, sekarang ${S.inp[x]}"><b>${x}</b> = ${S.inp[x]}</button>`).join("")}
-    <button class="btn" data-papan>Tunjuk papan ↓</button></div>`;
+  </div>`;
 }
 function tunjukPapan() {
   const w = document.querySelector(".board-wrap");
@@ -1004,20 +1023,28 @@ function tunjukPapan() {
 }
 function stepSub(n) {
   if (n === 2) { const s = ramalanStatus(); return s.ok && S.ramalanDisemak ? "betul" : `${s.filled}/${s.total}`; }
-  if (n === 3) { const s = ujiStatus(); return `${s.tried}/${s.total} dicuba`; }
-  if (n === 4) return `${S.probed.size} titik diprobe`;
-  if (n === 5) return S.solved ? "selesai" : S.cubaan ? `${S.cubaan} cubaan` : "";
+  if (n === 3) { const s = ujiStatus(); return s.tried < s.total ? `${s.tried}/${s.total} dicuba` : `${S.probed.size} titik diprobe`; }
+  if (n === 4) return S.solved ? "selesai" : S.cubaan ? `${S.cubaan} cubaan` : "";
   return "";
 }
 function stepDone(n) {
   if (n === 1) return S.step > 1;
   if (n === 2) return ramalanStatus().ok && S.ramalanDisemak;
-  if (n === 3) return ujiStatus().tried === ujiStatus().total;
-  if (n === 4) return S.step > 4;
+  if (n === 3) return ujiStatus().tried === ujiStatus().total && (S.step > 3 || S.solved);
   return S.solved;
+}
+// Pindahkan papan litar ke dalam langkah 3, atau balik ke tempat asal
+function letakPapan() {
+  const unit = $("boardUnit"), dock = $("boardDock");
+  if (dock) { if (unit.parentNode !== dock) dock.appendChild(unit); }
+  else if (unit.parentNode !== $("boardHome")) $("boardHome").appendChild(unit);
+  $("boardAway").hidden = !dock;
 }
 function renderSteps() {
   const keepAlasan = $("dAlasan"); if (keepAlasan) S.alasan = keepAlasan.value;
+  // keluarkan papan dulu supaya tak hilang bila kotak langkah dilukis semula
+  const unit = $("boardUnit"), sx = unit.querySelector(".board-wrap").scrollLeft;
+  if (unit.parentNode !== $("boardHome")) $("boardHome").appendChild(unit);
   $("steps").innerHTML = STEP_NAMES.map((name, i) => {
     const n = i + 1, cur = n === S.step, done = stepDone(n) && !cur;
     return `<div class="step ${cur ? "cur" : ""} ${done ? "done" : ""}">
@@ -1025,6 +1052,7 @@ function renderSteps() {
       ${cur ? `<div class="step-b">${stepBody(n)}</div>` : ""}</div>`;
   }).join("");
   const box = $("steps");
+  letakPapan(); unit.querySelector(".board-wrap").scrollLeft = sx;
   box.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => { S.step = +b.dataset.go; renderSteps(); }));
   box.querySelectorAll(".bit button").forEach(b => b.addEventListener("click", () => { S.exp[+b.dataset.row] = +b.dataset.v; renderSteps(); }));
   box.querySelectorAll("[data-dk]").forEach(b => b.addEventListener("click", () => { S.dk = b.dataset.dk; renderSteps(); }));
@@ -1034,8 +1062,9 @@ function renderSteps() {
     const nb = $("steps").querySelector(`[data-tsw="${x}"]`); if (nb) nb.focus();
   }));
   box.querySelectorAll("[data-papan]").forEach(b => b.addEventListener("click", tunjukPapan));
-  $("board").classList.toggle("nudge", S.step === 3 && ujiStatus().tried < ujiStatus().total);
-  $("board").classList.toggle("nudge4", S.step === 4 && S.probed.size < 2);
+  const ujiSiap = ujiStatus().tried === ujiStatus().total;
+  $("board").classList.toggle("nudge", S.step === 3 && !ujiSiap);
+  $("board").classList.toggle("nudge4", S.step === 3 && ujiSiap && S.probed.size < 2);
   const fp = $("btnFirstProbe"); if (fp) fp.addEventListener("click", () => { probeBy("Pelajar", S.kes.inputs[0]); tunjukPapan(); });
   const ck = $("btnCheckRamal"); if (ck) ck.addEventListener("click", checkRamalan);
   const sb = $("btnSetBad"); if (sb) sb.addEventListener("click", () => {
@@ -1189,7 +1218,7 @@ function probeBy(by, id) {
   S.probeAt = id; S.probed.add(id);
   setProbeDisplay(id, v);
   renderBoard();
-  if (S.step === 4) renderSteps();
+  if (S.step === 3) renderSteps();
   return v;
 }
 function refreshProbe() {
@@ -1199,7 +1228,7 @@ function refreshProbe() {
 function toggleInput(x) {
   S.inp[x] = S.inp[x] ? 0 : 1;
   observe(); renderBoard(); refreshProbe();
-  if (S.step === 3 || S.step === 4) renderSteps();
+  if (S.step === 3) renderSteps();
 }
 function checkRamalan() {
   S.ramalanDisemak = true;
@@ -1381,7 +1410,7 @@ function startGame() {
   S.profil.tahap = HOME.tahap; S.profil.betulBerturut = 0; S.profil.salahBerturut = 0;
   $("summary").hidden = true; $("stepsPanel").hidden = false;
   addTrace("ACARA", S.started ? "Sesi baharu dari skrin utama" : "Pelajar mula permainan");
-  addTrace("RANCANG", `Sediakan kes pertama, tahap ${HOME.tahap}`, "", [`Sesi ${HOME.len} kes`, HOME.tahap === 1 ? "Mula dengan satu get, kerosakan asas" : "Mula dengan gabungan dua get", "Bimbing pelajar ikut 5 langkah"]);
+  addTrace("RANCANG", `Sediakan kes pertama, tahap ${HOME.tahap}`, "", [`Sesi ${HOME.len} kes`, HOME.tahap === 1 ? "Mula dengan satu get, kerosakan asas" : "Mula dengan gabungan dua get", "Bimbing pelajar ikut 4 langkah"]);
   const awal = HOME.tahap === 1 ? pick(["tersekat_0", "tersekat_1"]) : "rawak";
   addTrace("ALAT", `jana_kes(tahap=${HOME.tahap}, kerosakan="${awal}")`);
   startCase(makeCase(HOME.tahap, awal, null));
@@ -1488,7 +1517,7 @@ const TOOLS = {
       p.xp += xp; p.streak++; p.betulBerturut++; p.salahBerturut = 0; S.solved = true;
       p.sejarah.push({ kes: S.kesNo, kerosakan: F.nama, keputusan: "betul", cubaan: S.cubaan, petunjuk: S.hints });
       catatSesi("sendiri");
-      S.lastResult = `Kes selesai: ${F.nama} (${komp}). +${xp} XP`; S.step = 5;
+      S.lastResult = `Kes selesai: ${F.nama} (${komp}). +${xp} XP`; S.step = 4;
     } else {
       p.streak = 0; p.betulBerturut = 0; p.salahBerturut++;
       p.sejarah.push({ kes: S.kesNo, keputusan, cubaan: S.cubaan });
@@ -1507,7 +1536,7 @@ const TOOLS = {
     p.kemahiran[F.kemahiran] = Math.max(0, p.kemahiran[F.kemahiran] - 5);
     p.sejarah.push({ kes: S.kesNo, kerosakan: F.nama, keputusan: "dibimbing", cubaan: S.cubaan, petunjuk: S.hints });
     catatSesi("bantuan");
-    S.solved = true; S.tunjukCara = null; S.step = 5;
+    S.solved = true; S.tunjukCara = null; S.step = 4;
     S.lastResult = `Kes selesai dengan bantuan Inspektor: ${F.nama} (${komp}). +${xp} XP`;
     renderStats(); renderSkills(); renderSteps();
     return { xp_diberi: xp, jawapan: { komponen: komp, jenis: F.jenis, nama: F.nama }, penerangan: F.terang(S.kes, f),
@@ -1565,7 +1594,7 @@ const SYSTEM = `Kau Inspektor Volt, agent AI dalam permainan Detektif Litar untu
 Papan: suis input A, B, C -> get logik dalam IC TTL 74LS (U1, U2) -> LED D1 dengan perintang 330 ohm. Bekalan 5 V.
 Get: AND (74LS08), OR (74LS32), NOT (74LS04). Pin 14 ialah VCC. Wayar W1-W4 sambungkan sumber ke pin input get.
 Logic probe baca TINGGI, RENDAH atau TERAPUNG. Input TTL yang terapung dibaca sebagai TINGGI oleh get.
-Pelajar ikut 5 langkah di skrin: 1 Faham litar, 2 Ramal jawapan (isi jadual kebenaran), 3 Uji pada papan, 4 Siasat dengan probe, 5 Jawab. Sesuaikan bimbingan ikut langkah semasa.
+Pelajar ikut 4 langkah di skrin: 1 Faham litar, 2 Ramal jawapan (isi jadual kebenaran), 3 Uji & siasat (papan litar ada dalam langkah ini: mula-mula tukar suis untuk cari baris salah, kemudian probe), 4 Jawab. Sesuaikan bimbingan ikut langkah semasa.
 Kemahiran yang dijejak: gate (fungsi get), sambungan (wayar dan input terapung, LED), kuasa (VCC IC), jadual (jadual kebenaran dan IC salah jenis).
 
 Tugas kau: bimbing pelajar cari kerosakan sendiri melalui soalan Socratic, dan sesuaikan kesukaran ikut prestasi.
@@ -1956,7 +1985,7 @@ async function demoAgent(ev) {
     const skill = weakestSkill(tahap), fault = faultForSkill(skill, tahap);
     addTrace("FIKIR", "Pilih kes seterusnya", `Kemahiran paling lemah pada tahap ${tahap}: ${KEMAHIRAN[skill]} (${p.kemahiran[skill]}). Betul berturut ${p.betulBerturut}, salah berturut ${p.salahBerturut}.`);
     await demoStep("rancang", { matlamat: `Latih "${KEMAHIRAN[skill]}" pada tahap ${tahap}`,
-      langkah: [`Jana kes tahap ${tahap} yang melatih ${KEMAHIRAN[skill].toLowerCase()}`, "Bimbing pelajar ikut 5 langkah", "Beri petunjuk hanya bila pelajar buntu"] });
+      langkah: [`Jana kes tahap ${tahap} yang melatih ${KEMAHIRAN[skill].toLowerCase()}`, "Bimbing pelajar ikut 4 langkah", "Beri petunjuk hanya bila pelajar buntu"] });
     const k = await demoStep("jana_kes", { tahap, kerosakan: fault });
     await say(`Kes #${k.kes_no}: **${k.senario}**. ${k.cerita} Tapi ada laporan: ${k.gejala} Mula dari langkah 1 dalam kotak Langkah penyiasatan.`);
     return;
@@ -1966,7 +1995,7 @@ async function demoAgent(ev) {
     const st = ramalanStatus();
     if (st.filled < st.total) await say(`Awak baru isi ${st.filled} daripada ${st.total} baris. Lengkapkan dulu, kemudian tekan Semak lagi.`);
     else if (r.jangkaan_pelajar_salah.length) await say(`Hampir. Baris ${r.jangkaan_pelajar_salah.join("; ")} belum betul. Ambil satu baris, kira get pertama dulu, kemudian get kedua.`);
-    else await say("Ramalan awak betul semua. Sekarang pergi ke langkah 3 dan tukar suis pada papan. Tengok baris mana LED tak ikut ramalan.");
+    else await say("Ramalan awak betul semua. Sekarang pergi ke langkah 3 dan tukar suis pada papan dalam kotak tu. Tengok baris mana LED tak ikut ramalan.");
     return;
   }
   if (ev.type === "diagnosis") {
@@ -1978,7 +2007,7 @@ async function demoAgent(ev) {
     if (!S.evProfil) await demoStep("kemaskini_profil", { kemahiran: r.kemahiran_berkaitan, perubahan: d, catatan: r.keputusan });
     if (r.keputusan === "betul") await say(`Tepat. ${r.penerangan} +${r.xp_diberi} XP.${kuat ? "" : " Lain kali tulis bukti probe, baru markah kemahiran naik lebih."}`);
     else if (r.keputusan === "separa_betul") await say("Bahagian tu betul, tapi jenis kerosakannya belum tepat. Probe input, output dan VCC 14 bahagian tu, kemudian fikir semula.");
-    else await say(`Belum kena. Kenapa awak syak ${ev.komponen}? Balik ke langkah 4, set suis ke baris yang salah, dan probe dari kiri ke kanan.`);
+    else await say(`Belum kena. Kenapa awak syak ${ev.komponen}? Balik ke langkah 3, set suis ke baris yang salah, dan probe dari kiri ke kanan.`);
     return;
   }
   if (ev.type === "tunjuk_cara") return demoShowMe(say);
@@ -1993,7 +2022,7 @@ async function demoAgent(ev) {
     return;
   }
   const t = ev.text;
-  if (S.solved && !/kes|seterusnya/i.test(t)) { await say(`Kes ni dah selesai. ${S.lastResult || ""} Tekan **Kes seterusnya** di langkah 5 bila dah sedia.`); return; }
+  if (S.solved && !/kes|seterusnya/i.test(t)) { await say(`Kes ni dah selesai. ${S.lastResult || ""} Tekan **Kes seterusnya** di langkah 4 bila dah sedia.`); return; }
   if (TAK_FAHAM.test(t)) return demoTakFaham(say);
   const mPin = t.match(/U\s*([12])\s*(?:pin)?\s*:?\s*(\d{1,2})/i);
   const mIn = t.match(/\b(?:suis|input|titik)\s+([ABC])\b/i);
@@ -2011,9 +2040,9 @@ async function demoAgent(ev) {
   const tips = {
     1: "Baca maksud litar dalam langkah 1, dan peraturan setiap get. Bila dah faham, tekan Seterusnya.",
     2: "Ambil satu baris. Kira get pertama dengan nilai A dan B, kemudian masukkan jawapannya ke get kedua. Hasil akhir tu yang LED patut tunjuk.",
-    3: "Klik kotak suis pada papan untuk tukar 0 dan 1. Cuba semua baris, dan tengok mana yang ada tanda salah.",
-    4: "Tekan butang Set suis, kemudian klik bulatan kelabu satu per satu dari kiri. Bandingkan nilai input dan output setiap get dengan peraturannya.",
-    5: "Pilih bahagian yang nilainya mula lari daripada peraturan, dan pilih apa yang rosak. Kalau ada tanda ?, fikir tentang sambungan atau kuasa."
+    3: ujiStatus().tried < ujiStatus().total ? "Dalam langkah 3, klik kotak suis pada papan untuk tukar 0 dan 1. Cuba semua baris, dan tengok mana yang ada tanda salah."
+      : "Tekan butang Set suis, kemudian klik bulatan kelabu pada papan satu per satu dari kiri. Bandingkan nilai input dan output setiap get dengan peraturannya.",
+    4: "Pilih bahagian yang nilainya mula lari daripada peraturan, dan pilih apa yang rosak. Kalau ada tanda ?, fikir tentang sambungan atau kuasa."
   };
   await say(tips[S.step]);
 }
@@ -2068,7 +2097,9 @@ function contohBaris(i) {
   return `${rowLabel(c, inp)}: ${parts.join(" → ")}. Jadi LED ${ev.y ? "menyala (1)" : "padam (0)"}.`;
 }
 async function demoTakFaham(say) {
-  if (S.takFahamStep !== S.step) { S.takFaham = 0; S.takFahamStep = S.step; }
+  const ujiSiapTF = ujiStatus().tried === ujiStatus().total;
+  const tfKey = S.step === 3 && ujiSiapTF ? "3b" : String(S.step);
+  if (S.takFahamStep !== tfKey) { S.takFaham = 0; S.takFahamStep = tfKey; }
   S.takFaham++;
   const c = S.kes, types = [...new Set(c.gates.map(g => g.type))];
   addTrace("FIKIR", "Pelajar keliru", `Pelajar kata tak faham di langkah ${S.step} (kali ke-${S.takFaham}). Terangkan dengan cara lain, guna contoh daripada litar ini.`);
@@ -2086,21 +2117,21 @@ async function demoTakFaham(say) {
     await demoStep("kira_jadual_reka_bentuk", {});
     msg = `Jom buat satu baris sama-sama. ${contohBaris(i)} Kira get pertama dulu, kemudian masukkan jawapannya ke get seterusnya. Sekarang cuba baris lain dengan cara yang sama.`;
   }
-  else if (S.step === 3 && lagi) {
+  else if (S.step === 3 && !ujiSiapTF && lagi) {
     const rows = rowsOf(c), k = rows.findIndex((_, j) => S.obs[j] === undefined);
     const inp = rows[k >= 0 ? k : 0];
     await demoStep("tetapkan_input", { ...inp });
     msg = `Saya tukarkan suis untuk awak ke **${rowLabel(c, inp)}**. Tengok papan: kotak suis berubah, LED ${evaluate(c, inp, c.fault).led ? "menyala" : "padam"}, dan satu lagi baris dalam jadual dah terisi. Sekarang cuba sendiri untuk baris yang masih kosong.`;
   }
-  else if (S.step === 3) msg = "Pada papan, klik kotak **A**. Nombor dalam kotak bertukar dari 0 ke 1, dan LED mungkin berubah. Setiap kali awak tukar suis, satu baris dalam jadual terisi. Tukar A dan B sampai semua baris ada jawapan.";
-  else if (S.step === 4 && lagi) {
+  else if (S.step === 3 && !ujiSiapTF) msg = "Pada papan, klik kotak **A**. Nombor dalam kotak bertukar dari 0 ke 1, dan LED mungkin berubah. Setiap kali awak tukar suis, satu baris dalam jadual terisi. Tukar A dan B sampai semua baris ada jawapan.";
+  else if (S.step === 3 && lagi) {
     const g = c.gates[0], pin = `${g.id}:${GATE[g.type].pinIn[0]}`;
     const a = await demoStep("probe", { titik: g.src[0] });
     const b = await demoStep("probe", { titik: pin });
     msg = `Saya tunjuk dua yang pertama. Suis ${g.src[0]}: **${a.bacaan}**. Kemudian ${pinName(pin)}, iaitu input get ${g.type}: **${b.bacaan}**. Dua-dua patut sama sebab disambung dengan wayar. Sekarang awak sambung: klik input lain, kemudian output get.`;
   }
-  else if (S.step === 4) msg = "Klik bulatan kelabu di sebelah kotak suis A. Nombor kecil muncul di bawahnya: itu nilai di titik tu. Lepas tu klik bulatan di sebelah kiri get (input), kemudian di sebelah kanan get (output). Tanya diri: dengan input macam ni, ikut peraturan get, output patut berapa? Sama tak dengan nombor di papan?";
-  else msg = S.probed.size ? "Ingat titik di mana nombor di papan mula tak ikut peraturan get. Bahagian sebelum titik tu yang awak pilih. Kalau nombor jadi ?, maknanya titik tu tak bersambung." : "Belum ada probe lagi. Balik ke langkah 4 dan probe dari kiri ke kanan dulu, baru senang pilih jawapan.";
+  else if (S.step === 3) msg = "Klik bulatan kelabu di sebelah kotak suis A. Nombor kecil muncul di bawahnya: itu nilai di titik tu. Lepas tu klik bulatan di sebelah kiri get (input), kemudian di sebelah kanan get (output). Tanya diri: dengan input macam ni, ikut peraturan get, output patut berapa? Sama tak dengan nombor di papan?";
+  else msg = S.probed.size ? "Ingat titik di mana nombor di papan mula tak ikut peraturan get. Bahagian sebelum titik tu yang awak pilih. Kalau nombor jadi ?, maknanya titik tu tak bersambung." : "Belum ada probe lagi. Balik ke langkah 3 dan probe dari kiri ke kanan dulu, baru senang pilih jawapan.";
   await say(msg);
   if (S.takFaham >= 3 && !S.solved) {
     if (bolehTunjuk()) await say("Kalau masih keliru, tekan **Tunjukkan saya caranya** dan saya buat di papan.");
