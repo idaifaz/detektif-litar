@@ -709,8 +709,8 @@ const FAULTS = {
   tiada_vcc: { nama: "IC tiada kuasa (VCC)", jenis: "tiada_kuasa", kemahiran: "kuasa", tahap: 2,
     hint: ["Setiap IC perlukan kuasa sebelum ia boleh buat apa-apa. Pin mana yang bekalkan kuasa pada IC 74LS?",
            "Probe pin 14 (VCC) pada setiap IC.",
-           "Pin 14 yang terapung bermaksud IC tak dapat 5 V. Outputnya akan kekal RENDAH."],
-    terang: (c, f) => `Pin 14 ${f.target} tak disambung ke 5 V. Tanpa kuasa, output IC kekal RENDAH walaupun input betul.` },
+           "Pin 14 yang terapung bermaksud IC tak dapat 5 V. IC tanpa kuasa tak boleh ikut peraturan get, jadi outputnya tak boleh dipercayai."],
+    terang: (c, f) => `Pin 14 ${f.target} tak disambung ke 5 V. IC tanpa kuasa tak berfungsi, jadi outputnya tak ikut input. Dalam permainan ni ia dibaca RENDAH; dalam litar sebenar output IC tanpa VCC tak menentu, sebab itu langkah pertama troubleshoot ialah semak pin 14.` },
   ic_salah_jenis: { nama: "IC salah jenis dipasang", jenis: "salah_jenis", kemahiran: "jadual", tahap: 3,
     hint: ["Bandingkan jadual kebenaran baris demi baris. Corak salahnya macam fungsi get lain?",
            "Probe input dan output satu get untuk semua kombinasi, dan bina jadual kebenaran get itu sendiri.",
@@ -874,6 +874,24 @@ function renderCase() {
 }
 function sesiIndex() { return Math.min(S.sesi.jumlah, S.sesi.rekod.length + (S.solved ? 0 : 1)); }
 function sesiHabis() { return S.sesi.rekod.length >= S.sesi.jumlah; }
+/* Kategori kes: sendiri (tiada petunjuk), petunjuk (guna petunjuk/buntu), dibimbing (tunjuk cara) */
+function kategori(r) {
+  if (r.status === "bantuan") return { kod: "dibimbing", label: "Dibimbing" };
+  if (r.petunjuk > 0) return { kod: "petunjuk", label: "Guna petunjuk" };
+  return { kod: "sendiri", label: "Sendiri" };
+}
+function kiraSesi() {
+  const ss = S.sesi, n = k => ss.rekod.filter(r => kategori(r).kod === k).length;
+  return { sendiri: n("sendiri"), petunjuk: n("petunjuk"), dibimbing: n("dibimbing"), selesai: ss.rekod.length, jumlah: ss.jumlah };
+}
+/* Fakta sesi dikira oleh kod, supaya AI tak perlu (dan tak boleh) teka nombor */
+function faktaSesi() {
+  const k = kiraSesi();
+  return { kes_selesai: `${k.selesai}/${k.jumlah}`, sendiri_tanpa_petunjuk: k.sendiri, guna_petunjuk: k.petunjuk, dibimbing_tunjuk_cara: k.dibimbing,
+    xp_sesi: S.profil.xp - S.sesi.xpMula,
+    kes: S.sesi.rekod.map((r, i) => ({ kes: i + 1, senario: r.senario, kerosakan: r.nama, kategori: kategori(r).label,
+      cubaan_jawapan: r.cubaan, betul_cubaan_pertama: r.cubaan === 1, petunjuk: r.petunjuk, masa: minitSaat(r.tamat - r.mula) })) };
+}
 function catatSesi(status) { S.sesi.rekod.push({ kes: S.kesNo, status, tahap: S.kes.tahap, nama: FAULTS[S.kes.fault.jenis].nama, ungkapan: S.kes.tpl.txt,
   senario: S.kes.sc.tajuk, petunjuk: S.hints, cubaan: S.cubaan, mula: S.kesMula || null, tamat: Date.now() }); }
 function renderTimeline() {
@@ -885,7 +903,7 @@ function renderTimeline() {
   for (let i = 1; i <= n; i++) {
     const r = ss.rekod[i - 1];
     let cls = "", dot = i, lbl = "";
-    if (r) { cls = r.status === "sendiri" ? "done" : "help"; dot = r.status === "sendiri" ? "✓" : "B"; lbl = r.status === "sendiri" ? "Selesai" : "Dibantu"; }
+    if (r) { const kt = kategori(r).kod; cls = kt === "dibimbing" ? "help" : "done"; dot = kt === "dibimbing" ? "B" : kt === "petunjuk" ? "P" : "✓"; lbl = kt === "dibimbing" ? "Dibimbing" : kt === "petunjuk" ? "Petunjuk" : "Selesai"; }
     else if (i === cur && !S.solved) { cls = "cur"; lbl = "Sekarang"; }
     html += `<div class="tl-node ${cls}" title="${r ? `Kes ${i}: ${r.nama} (${lbl.toLowerCase()})` : `Kes ${i}`}"><span class="tl-dot">${dot}</span><span class="tl-lbl">${lbl || "&nbsp;"}</span></div>`;
   }
@@ -1246,7 +1264,7 @@ function tarikhMY(d) { return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${
 function minitSaat(ms) { if (!ms || ms < 0) return "-"; const m = Math.floor(ms / 60000), sx = Math.round((ms % 60000) / 1000); return m ? `${m} min ${sx} s` : `${sx} s`; }
 function bersih(t, n) { return String(t || "").replace(/[\r\n\t]+/g, " ").replace(/[<>]/g, "").replace(/https?:\/\/\S+/gi, "").trim().slice(0, n); }
 function buildReport() {
-  const ss = S.sesi, sendiri = ss.rekod.filter(r => r.status === "sendiri").length;
+  const ss = S.sesi, k = kiraSesi();
   const nama = bersih($("repNama").value, 40) || "(tiada nama)", kelas = bersih($("repKelas").value, 30);
   const L = [];
   L.push("LAPORAN DETEKTIF LITAR");
@@ -1254,12 +1272,14 @@ function buildReport() {
   if (kelas) L.push(`Kelas: ${kelas}`);
   L.push(`Tarikh: ${tarikhMY(new Date())}`);
   L.push(`Sesi: ${ss.jumlah} kes, tahap mula ${ss.tahapMula || 1}, tahap akhir ${S.profil.tahap}`);
-  L.push(`Diselesaikan sendiri: ${sendiri}/${ss.jumlah}`);
-  L.push(`Dengan bantuan Inspektor: ${ss.jumlah - sendiri}`);
+  L.push(`Sendiri tanpa petunjuk: ${k.sendiri}/${ss.jumlah}`);
+  L.push(`Guna petunjuk: ${k.petunjuk}`);
+  L.push(`Dibimbing Inspektor (tunjuk cara): ${k.dibimbing}`);
+  if (k.selesai < ss.jumlah) L.push(`Belum selesai: ${ss.jumlah - k.selesai}`);
   L.push(`XP sesi: ${S.profil.xp - ss.xpMula}`);
   L.push("");
   L.push("Butiran kes:");
-  ss.rekod.forEach((r, i) => L.push(`${i + 1}. ${r.senario} (${r.ungkapan.replace(/^Y = /, "")}) | ${r.nama} | ${r.status === "sendiri" ? "Sendiri" : "Dibantu"} | ${r.cubaan} cubaan, ${r.petunjuk} petunjuk | ${minitSaat(r.tamat - r.mula)}`));
+  ss.rekod.forEach((r, i) => L.push(`${i + 1}. ${r.senario} (${r.ungkapan.replace(/^Y = /, "")}) | ${r.nama} | ${kategori(r).label} | ${r.cubaan} cubaan, ${r.petunjuk} petunjuk | ${minitSaat(r.tamat - r.mula)}`));
   L.push("");
   L.push("Skor kemahiran (0-100):");
   Object.keys(KEMAHIRAN).forEach(k => L.push(`- ${KEMAHIRAN[k]}: ${S.profil.kemahiran[k]}`));
@@ -1326,13 +1346,14 @@ async function copyReport() {
   catch (_) { t.focus(); t.select(); repMsg("Laporan dah dipilih. Tekan Ctrl+C (atau tahan dan pilih Salin di phone)."); }
 }
 function renderSummary() {
-  const ss = S.sesi, sendiri = ss.rekod.filter(r => r.status === "sendiri").length, bantu = ss.rekod.length - sendiri;
+  const ss = S.sesi, k = kiraSesi();
   const lemah = lemahSesi();
+  const warna = { sendiri: "#5ccf8c", petunjuk: "#e8c36a", dibimbing: "#b8c0bc" };
   $("sumBody").innerHTML = `<div class="sum-grid">
-      <div class="sum-box"><b>${sendiri}/${ss.jumlah}</b><span>diselesaikan sendiri</span></div>
-      <div class="sum-box"><b>${bantu}</b><span>dengan bantuan Inspektor</span></div>
+      <div class="sum-box"><b>${k.sendiri}/${ss.jumlah}</b><span>sendiri tanpa petunjuk</span></div>
+      <div class="sum-box"><b>${k.petunjuk + k.dibimbing}</b><span>guna petunjuk atau bimbingan</span></div>
       <div class="sum-box"><b>+${S.profil.xp - ss.xpMula}</b><span>XP dalam sesi ni</span></div></div>
-    <div class="sum-list">${ss.rekod.map((r, i) => `<div><span>Kes ${i + 1}: ${esc(r.nama)} · tahap ${r.tahap}</span><b style="color:${r.status === "sendiri" ? "#5ccf8c" : "#b8c0bc"}">${r.status === "sendiri" ? "Sendiri" : "Dibantu"}</b></div>`).join("")}</div>
+    <div class="sum-list">${ss.rekod.map((r, i) => { const kt = kategori(r); return `<div><span>Kes ${i + 1}: ${esc(r.nama)} · tahap ${r.tahap} · ${r.cubaan} cubaan</span><b style="color:${warna[kt.kod]}">${kt.label}${r.petunjuk ? ` (${r.petunjuk})` : ""}</b></div>`; }).join("")}</div>
     <p class="tip" style="margin-bottom:12px">Perlu lebih latihan: <b>${lemah.join(", ")}</b>.</p>`;
   if (!$("repNama").value) $("repNama").value = S.nama || "";
   try {
@@ -1347,7 +1368,7 @@ function tamatSesi() {
   $("hSum").textContent = S.nama ? `Sesi tamat · Detektif ${S.nama}` : "Sesi tamat";
   renderSummary();
   $("summary").hidden = false; $("stepsPanel").hidden = true;
-  runAgent({ type: "tamat_sesi", label: "Sesi tamat", prompt: `[ACARA] Sesi latihan tamat (${S.sesi.jumlah} kes). Panggil lihat_profil, kemudian beri ringkasan pendek: berapa kes diselesaikan sendiri, kemahiran paling lemah, dan satu cadangan latihan. Jangan jana kes baharu.` }, null);
+  runAgent({ type: "tamat_sesi", label: "Sesi tamat", prompt: `[ACARA] Sesi latihan tamat (${S.sesi.jumlah} kes). FAKTA SESI (dikira oleh sistem, guna nombor ini tepat-tepat, jangan ubah atau anggar): ${JSON.stringify(faktaSesi())}. Panggil lihat_profil, kemudian beri ringkasan pendek: berapa kes sendiri tanpa petunjuk, kes mana guna petunjuk atau perlu lebih dari satu cubaan, kemahiran paling lemah, dan satu cadangan latihan. Jangan jana kes baharu.` }, null);
 }
 function mulaSesi() {
   S.sesi.rekod = []; S.sesi.xpMula = S.profil.xp; S.sesi.tamat = false; S.sesi.tahapMula = S.profil.tahap; S.ulasanSesi = "";
@@ -1443,7 +1464,7 @@ const TOOLS = {
     return { tahap: p.tahap, xp: p.xp, betul_berturut: p.betulBerturut, salah_berturut: p.salahBerturut,
              kemahiran: p.kemahiran, kemahiran_paling_lemah_ikut_tahap: weakestSkill(p.tahap), kes_terkini: S.recent.slice(-5),
              nota: "Tahap 1: kemahiran gate & sambungan sahaja. Kuasa mula tahap 2. Jadual (IC salah jenis) mula tahap 3.",
-             sejarah_terkini: p.sejarah.slice(-5) };
+             sejarah_terkini: p.sejarah.slice(-5), rekod_sesi_ini: faktaSesi() };
   },
   tetapkan_input(a) {
     for (const x of S.kes.inputs) if (a[x] !== undefined && a[x] !== null) S.inp[x] = num(a[x]) ? 1 : 0;
@@ -1583,6 +1604,7 @@ Peraturan:
 11. Bila pelajar kata "tak faham", keliru atau seumpamanya: jangan ulang ayat yang sama. Terangkan dengan cara lain, guna analogi harian (AND = dua suis bersiri, OR = dua suis selari, NOT = suis terbalik) atau kira satu baris contoh daripada litar ini langkah demi langkah. Kalau dia tak faham dua kali, tawarkan petunjuk.
 12. Setiap giliran MESTI berakhir dengan sekurang-kurangnya satu ayat kepada pelajar. Jangan berhenti selepas panggil tools tanpa menulis apa-apa.
 8. Soalan biasa: panggil lihat_status_kes untuk tengok apa pelajar dah buat, kemudian beri langkah seterusnya atau soalan bimbingan.
+15. Jangan reka nombor. Bila sebut markah, XP, cubaan, petunjuk, masa atau berapa kes betul, ambil dari FAKTA SESI dalam acara atau rekod_sesi_ini dalam lihat_profil. Panggil lihat_profil dulu kalau pelajar tanya markah atau prestasi, terutamanya selepas sesi tamat. Jangan kata "semua cubaan pertama" atau "tanpa bantuan" kecuali data tunjuk begitu.
 9. Pelajar mungkin baru belajar: guna ayat pendek dan mudah. Balasan maksimum 60 patah perkataan, Bahasa Melayu Malaysia santai, istilah teknikal kekal dalam BI bila biasa (logic probe, IC, pin). Tiada emoji.`;
 
 /* ================= JEJAK & CHAT ================= */
@@ -1941,10 +1963,11 @@ async function demoAgent(ev) {
   const say = async t => { await sleep(350); addTrace("JAWAB", "Balasan kepada pelajar"); addMsg("Inspektor Volt", t); };
   if (ev.type === "tamat_sesi") {
     const pr = await demoStep("lihat_profil", {});
-    const ss = S.sesi, sendiri = ss.rekod.filter(r => r.status === "sendiri").length;
+    const ss = S.sesi, k = kiraSesi(), sendiri = k.sendiri;
     const lemah = lemahSesi();
-    addTrace("FIKIR", "Ringkaskan sesi", `${sendiri}/${ss.jumlah} sendiri. Kemahiran paling lemah antara yang dilatih: ${lemah.join(", ")}.`);
-    await say(`Sesi selesai. Awak selesaikan **${sendiri} daripada ${ss.jumlah}** kes sendiri${sendiri === ss.jumlah ? ", tanpa bantuan langsung. Hebat." : "."} Bahagian yang perlu lebih latihan: **${lemah.join(", ")}**. Bila mula sesi baharu, saya akan pilih lebih banyak kes untuk bahagian tu.`);
+    addTrace("FIKIR", "Ringkaskan sesi", `${sendiri}/${ss.jumlah} sendiri tanpa petunjuk, ${k.petunjuk} guna petunjuk, ${k.dibimbing} dibimbing. Kemahiran paling lemah antara yang dilatih: ${lemah.join(", ")}.`);
+    const lain = [k.petunjuk ? `${k.petunjuk} guna petunjuk` : "", k.dibimbing ? `${k.dibimbing} dibimbing` : ""].filter(Boolean).join(", ");
+    await say(`Sesi selesai. Awak selesaikan **${sendiri} daripada ${ss.jumlah}** kes sendiri tanpa petunjuk${sendiri === ss.jumlah ? ". Hebat." : lain ? ` (${lain}).` : "."} Bahagian yang perlu lebih latihan: **${lemah.join(", ")}**. Bila mula sesi baharu, saya akan pilih lebih banyak kes untuk bahagian tu.`);
     return;
   }
   if (ev.type === "kes_baru") {
