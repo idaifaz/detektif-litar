@@ -1282,18 +1282,42 @@ function sendMail(cara) {
   const had = cara === "gmail" ? 3000 : 1800;
   if (body.length > had) body = body.slice(0, had) + "\n...(laporan dipendekkan, salin laporan penuh dari app)";
   const q = s => encodeURIComponent(s);
+  // Salin laporan siap-siap: kalau emel tak terbuka, pelajar tetap boleh paste
+  salinSenyap($("repText").value);
   if (cara === "gmail") {
     // Gmail dalam pelayar: jalan di komputer makmal walaupun tiada aplikasi emel dipasang
     const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${q(to)}&su=${q(subj)}&body=${q(body)}`;
-    window.open(url, "_blank", "noopener");
-    repMsg(`Gmail dibuka dalam tab baharu dengan laporan untuk ${to}. Semak, kemudian tekan Send. Kalau tab tak terbuka, benarkan pop-up untuk laman ni atau tekan Salin laporan.`, true);
+    let w = null;
+    try { w = window.open(url, "_blank"); if (w) w.opener = null; } catch (_) { w = null; }
+    repLink(w ? `Gmail dibuka dalam tab baharu. Semak laporan, kemudian tekan <b>Send</b>.` : `Tab Gmail tak dapat dibuka secara automatik.`,
+      url, "Klik sini untuk buka Gmail", !!w);
     return;
   }
+  const href = `mailto:${q(to)}?subject=${q(subj)}&body=${q(body)}`;
   const a = document.createElement("a");
-  a.href = `mailto:${q(to)}?subject=${q(subj)}&body=${q(body)}`;
+  a.href = href;
   if (GAS) { a.target = "_blank"; a.rel = "noopener"; }
   document.body.appendChild(a); a.click(); a.remove();
-  repMsg(`Kalau aplikasi emel terbuka, tekan Hantar di sana. Kalau tiada apa berlaku, komputer ni tiada aplikasi emel. Tekan Hantar guna Gmail atau Salin laporan.`);
+  repLink(`Kalau aplikasi emel terbuka, tekan Hantar di sana. Kalau tiada apa berlaku, komputer ni tiada aplikasi emel. Guna butang <b>Hantar guna Gmail</b>.`, href, "Cuba buka aplikasi emel sekali lagi", null);
+}
+let salinJanji = Promise.resolve(false);
+function salinSenyap(t) {
+  salinJanji = (async () => {
+    try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(t); return true; } } catch (_) {}
+    return false;
+  })();
+}
+function repLink(teks, href, label, ok) {
+  const m = $("repMsg");
+  m.className = ok === true ? "msg-ok" : ok === false ? "msg-bad" : "note";
+  m.innerHTML = `${teks} <a class="btn small" href="${href.replace(/"/g, "&quot;")}" target="_blank" rel="noopener">${label}</a>`;
+  salinJanji.then(disalin => {
+    const s = document.createElement("span");
+    s.className = "note"; s.style.display = "block"; s.style.marginTop = "6px";
+    s.textContent = disalin ? "Laporan juga dah disalin. Kalau emel tak terbuka langsung, paste (Ctrl+V) dalam WhatsApp atau Google Classroom."
+      : "Kalau emel tak terbuka langsung, tekan Salin laporan dan paste dalam WhatsApp atau Google Classroom.";
+    m.appendChild(s);
+  });
 }
 async function copyReport() {
   renderReport();
