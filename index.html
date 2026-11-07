@@ -499,7 +499,7 @@ body.at-home .stats, body.at-home #btnBrain, body.at-home #btnHome { display: no
         <div id="sumBody"></div>
         <div class="report" id="reportBox">
           <h3>Hantar keputusan</h3>
-          <p class="note" style="margin:0">Hantar laporan ni kepada pensyarah atau emel sendiri. Butang Hantar akan buka aplikasi emel awak dengan laporan siap ditulis, kemudian awak tekan Hantar dalam aplikasi tu. Detektif Litar tak simpan laporan atau emel awak.</p>
+          <p class="note" style="margin:0">Hantar laporan ni kepada pensyarah atau emel sendiri. Butang di bawah akan buka emel dengan laporan siap ditulis. Awak cuma perlu tekan <b>Hantar / Send</b> di situ. Detektif Litar tak simpan laporan atau emel awak.</p>
           <div class="report-grid">
             <label for="repNama">Nama<input type="text" id="repNama" maxlength="40" autocomplete="name"></label>
             <label for="repKelas">Kelas / kumpulan (pilihan)<input type="text" id="repKelas" maxlength="30" placeholder="Contoh: DET 2A" autocomplete="off"></label>
@@ -508,9 +508,11 @@ body.at-home .stats, body.at-home #btnBrain, body.at-home #btnHome { display: no
           </div>
           <p id="repMsg" class="note" style="margin:0" aria-live="polite"></p>
           <div class="row-actions">
-            <button class="btn primary" id="btnMail" type="button">Hantar melalui emel</button>
+            <button class="btn primary" id="btnMail" type="button">Hantar guna Gmail</button>
+            <button class="btn" id="btnMailApp" type="button">Aplikasi emel lain</button>
             <button class="btn" id="btnCopy" type="button">Salin laporan</button>
           </div>
+          <p class="note" style="margin:0">Guna komputer makmal: tekan <b>Gmail</b> (pastikan dah log masuk akaun Google). Guna phone: mana-mana butang boleh. Kalau semua tak jadi, tekan <b>Salin laporan</b> dan paste dalam WhatsApp atau Google Classroom.</p>
         </div>
         <div class="row-actions"><button class="btn primary" id="btnNewSesi">Mula sesi baharu</button><button class="btn" id="btnHome2">Ke skrin utama</button></div>
       </section>
@@ -1269,7 +1271,7 @@ function buildReport() {
 }
 function renderReport() { $("repText").value = buildReport(); }
 function repMsg(t, ok) { const m = $("repMsg"); m.textContent = t; m.className = ok === true ? "msg-ok" : ok === false ? "msg-bad" : "note"; }
-function sendMail() {
+function sendMail(cara) {
   const to = $("repEmail").value.trim();
   if (!/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]{2,}$/.test(to)) { repMsg("Masukkan satu alamat emel yang sah, contohnya nama@contoh.com.", false); $("repEmail").focus(); return; }
   renderReport();
@@ -1277,12 +1279,21 @@ function sendMail() {
   const nama = bersih($("repNama").value, 40);
   const subj = `Laporan Detektif Litar${nama ? " - " + nama : ""} (${tarikhMY(new Date()).slice(0, 10)})`;
   let body = $("repText").value;
-  if (body.length > 1800) body = body.slice(0, 1800) + "\n...(laporan dipendekkan, salin laporan penuh dari app)";
+  const had = cara === "gmail" ? 3000 : 1800;
+  if (body.length > had) body = body.slice(0, had) + "\n...(laporan dipendekkan, salin laporan penuh dari app)";
+  const q = s => encodeURIComponent(s);
+  if (cara === "gmail") {
+    // Gmail dalam pelayar: jalan di komputer makmal walaupun tiada aplikasi emel dipasang
+    const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${q(to)}&su=${q(subj)}&body=${q(body)}`;
+    window.open(url, "_blank", "noopener");
+    repMsg(`Gmail dibuka dalam tab baharu dengan laporan untuk ${to}. Semak, kemudian tekan Send. Kalau tab tak terbuka, benarkan pop-up untuk laman ni atau tekan Salin laporan.`, true);
+    return;
+  }
   const a = document.createElement("a");
-  a.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+  a.href = `mailto:${q(to)}?subject=${q(subj)}&body=${q(body)}`;
   if (GAS) { a.target = "_blank"; a.rel = "noopener"; }
   document.body.appendChild(a); a.click(); a.remove();
-  repMsg(`Aplikasi emel sepatutnya terbuka dengan laporan untuk ${to}. Tekan Hantar di sana. Kalau tiada apa berlaku, tekan Salin laporan dan paste dalam emel atau WhatsApp.`);
+  repMsg(`Kalau aplikasi emel terbuka, tekan Hantar di sana. Kalau tiada apa berlaku, komputer ni tiada aplikasi emel. Tekan Hantar guna Gmail atau Salin laporan.`);
 }
 async function copyReport() {
   renderReport();
@@ -2156,7 +2167,8 @@ $("sendForm").addEventListener("submit", e => {
 });
 $("btnShowMe").addEventListener("click", showMe);
 $("btnNewSesi").addEventListener("click", mulaSesi);
-$("btnMail").addEventListener("click", sendMail);
+$("btnMail").addEventListener("click", () => sendMail("gmail"));
+$("btnMailApp").addEventListener("click", () => sendMail("app"));
 $("btnCopy").addEventListener("click", copyReport);
 ["repNama", "repKelas"].forEach(id => $(id).addEventListener("input", renderReport));
 $("btnHome").addEventListener("click", showHome);
