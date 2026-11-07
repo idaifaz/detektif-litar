@@ -167,6 +167,16 @@ svg.board { display: block; width: 100%; min-width: 560px; height: auto; }
 .probe-strip .read { font: 700 18px var(--f-display); letter-spacing: .04em; }
 .probe-strip .where { font: 400 13px var(--f-mono); color: #4a524f; }
 .probe-strip.flash { animation: flash .45s; }
+.probe-name { display: flex; align-items: center; gap: 8px; padding-right: 12px; border-right: 1px solid #a9b1ad; }
+.probe-name b { font: 700 13px var(--f-display); letter-spacing: .06em; text-transform: uppercase; }
+.probe-name small { font: 400 11.5px var(--f-body); color: #4a524f; }
+.pen { pointer-events: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,.5)); }
+.board.nudge4 .pad .ring { animation: padPulse 1.4s ease-in-out infinite; }
+@keyframes padPulse { 50% { stroke: #b9f5cf; stroke-width: 3.5; } }
+.probe-explain { display: flex; gap: 12px; align-items: flex-start; background: var(--pin); border: 1px solid var(--pbd); border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+.probe-explain .pic { flex: none; background: #d7dcda; border-radius: 6px; padding: 6px 8px; }
+.probe-explain p { margin: 0; }
+@media (max-width: 560px) { .probe-explain { flex-direction: column; } .probe-name { border-right: 0; padding-right: 0; width: 100%; } }
 @keyframes flash { 0% { filter: brightness(1.1); } 100% { filter: none; } }
 
 /* Langkah */
@@ -523,10 +533,11 @@ body.at-home .stats, body.at-home #btnBrain, body.at-home #btnHome { display: no
         <div class="board-wrap"><svg class="board" id="board" viewBox="0 0 660 290" role="img" aria-label="Litar get logik"></svg></div>
         <div class="legend">
           <span>Klik kotak <b>A</b>/<b>B</b>/<b>C</b> untuk tukar 0 ↔ 1</span>
-          <span>Klik bulatan kelabu untuk probe</span>
+          <span>Bulatan kelabu = titik probe. Klik untuk uji</span>
           <span><b style="color:var(--hi)">1</b> = HI · <b style="color:var(--lo)">0</b> = LO · <b style="color:var(--z)">?</b> = terapung</span>
         </div>
         <div class="probe-strip" id="probeStrip">
+          <div class="probe-name"><span id="probeIco"></span><b>Logic probe</b><small>alat uji</small></div>
           <div class="lamp hi" id="lampHi"><i></i>HI</div>
           <div class="lamp lo" id="lampLo"><i></i>LO</div>
           <span class="read" id="lpRead">Probe belum diletak</span>
@@ -949,7 +960,11 @@ function stepBody(n) {
   if (n === 4) {
     const st = ujiStatus(), bad = st.bad[0] || (c.mm[0]);
     const types = [...new Set(c.gates.map(g => g.type))];
-    return `<p>Set suis ikut baris yang salah, kemudian pergi ke papan dan klik bulatan kelabu dari <b>kiri ke kanan</b>: suis → pin input → pin output → Y. Nilai 1, 0 atau ? muncul di bawah setiap bulatan.</p>
+    const baru = S.probed.size === 0;
+    return `<div class="probe-explain"><span class="pic">${probeIcon(96)}</span>
+      <p><b>Apa itu probe?</b> Logic probe ialah alat uji berbentuk pen. Hujungnya disentuh pada satu titik litar, dan lampu pada probe beritahu nilai di titik tu: <b style="color:var(--hi)">HI = 1</b>, <b style="color:var(--lo)">LO = 0</b>, tiada lampu = <b style="color:var(--z)">?</b> (tak bersambung).<br>Pada papan, setiap <b>bulatan kelabu kecil</b> ialah titik yang boleh disentuh. Klik satu bulatan, pen probe akan muncul di situ dan bacaannya keluar di kotak <b>Logic probe</b> bawah papan.</p></div>
+      ${baru ? `<div class="row-actions"><button class="btn primary" id="btnFirstProbe">Cuba probe titik pertama (suis ${c.inputs[0]})</button></div>` : ""}
+      <p>Set suis ikut baris yang salah, kemudian probe dari <b>kiri ke kanan</b>: suis → pin input get → pin output get → Y. Nilai 1, 0 atau ? akan melekat di sebelah setiap bulatan yang dah diprobe.</p>
       <div class="row-actions"><button class="btn" id="btnSetBad">Set suis ke ${rowLabel(c, bad.inp)}</button><button class="btn" data-papan>Tunjuk papan ↓</button></div>
       <div class="rules">${types.map(t => `<div class="rule"><b>${t}</b><span>${RULE[t]}</span></div>`).join("")}</div>
       <p class="tip">Cari titik pertama yang nilainya tak ikut peraturan get. Tanda <b style="color:var(--z)">?</b> bermaksud titik tu terapung, tak bersambung. Jangan lupa bulatan VCC 14 di atas setiap IC.</p>
@@ -1016,6 +1031,8 @@ function renderSteps() {
   }));
   box.querySelectorAll("[data-papan]").forEach(b => b.addEventListener("click", tunjukPapan));
   $("board").classList.toggle("nudge", S.step === 3 && ujiStatus().tried < ujiStatus().total);
+  $("board").classList.toggle("nudge4", S.step === 4 && S.probed.size < 2);
+  const fp = $("btnFirstProbe"); if (fp) fp.addEventListener("click", () => { probeBy("Pelajar", S.kes.inputs[0]); tunjukPapan(); });
   const ck = $("btnCheckRamal"); if (ck) ck.addEventListener("click", checkRamalan);
   const sb = $("btnSetBad"); if (sb) sb.addEventListener("click", () => {
     const bad = ujiStatus().bad[0] || S.kes.mm[0];
@@ -1066,6 +1083,33 @@ function pad(id, x, y, label, lx, ly, pins, badgeSide) {
     ${badge}
   </g>`;
 }
+/* Pen logic probe yang muncul di titik yang sedang diprobe */
+function padXY(id, L, c) {
+  if (c.inputs.includes(id)) return [100, L.ys[id]];
+  const [gid, pin] = id.split(":"), g = c.gates.find(x => x.id === gid);
+  if (!g) return null;
+  const P = L.pos[gid], info = GATE[g.type];
+  if (+pin === 14) return [P.x0 + 30, P.cy - 48];
+  if (+pin === info.pinOut) return [P.outX, P.cy];
+  const i = info.pinIn.indexOf(+pin);
+  return i < 0 ? null : [P.x0 - 18, P.pinY[i]];
+}
+function probePen(L, c, pins) {
+  if (!S.probeAt) return "";
+  const xy = padXY(S.probeAt, L, c);
+  if (!xy) return "";
+  const v = pins[S.probeAt], lamp = v === "1" ? "var(--hi)" : v === "0" ? "var(--lo)" : "#55605c";
+  return `<g class="pen" transform="translate(${xy[0]} ${xy[1]}) rotate(${xy[1] < 80 ? 148 : 32}) scale(1.3)" aria-hidden="true">
+    <line x1="0" y1="-1" x2="0" y2="-11" stroke="#e8ecea" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M-4 -11 L4 -11 L6 -17 L-6 -17 Z" fill="#9aa39f"/>
+    <rect x="-7" y="-47" width="14" height="31" rx="4" fill="#e1e5e3" stroke="#121514" stroke-width="1.5"/>
+    <circle cx="0" cy="-38" r="4" fill="${lamp}" stroke="#121514" stroke-width="1"/>
+    <path d="M0 -47 q0 -10 10 -14" stroke="#121514" stroke-width="2.5" fill="none"/>
+  </g>`;
+}
+function probeIcon(w) {
+  return `<svg viewBox="0 0 80 24" width="${w}" height="${w * 0.3}" aria-hidden="true"><line x1="2" y1="12" x2="14" y2="12" stroke="#4a524f" stroke-width="2.5" stroke-linecap="round"/><path d="M14 8 L21 6 L21 18 L14 16 Z" fill="#7d8582"/><rect x="21" y="4" width="44" height="16" rx="5" fill="#f2f4f3" stroke="#121514" stroke-width="1.5"/><circle cx="32" cy="12" r="3.5" fill="var(--hi)"/><circle cx="43" cy="12" r="3.5" fill="var(--lo)"/><path d="M65 12 q8 0 13 -6" stroke="#121514" stroke-width="2.5" fill="none"/></svg>`;
+}
 function renderBoard() {
   const c = S.kes, L = layout(c), ev = evaluate(c, S.inp, c.fault), pins = ev.pins;
   let wires = "", parts = "", pads = "";
@@ -1111,7 +1155,7 @@ function renderBoard() {
     <rect x="613" y="${ly + 16}" width="14" height="32" rx="3" fill="#b9bfbc" stroke="#7d8582"/>
     <path d="M620 ${ly + 48} V${ly + 58}" ${cu}/>
     <path d="M608 ${ly + 58} H632 M612 ${ly + 63} H628 M616 ${ly + 68} H624" stroke="var(--silk)" stroke-width="2"/>`;
-  $("board").innerHTML = wires + parts + pads;
+  $("board").innerHTML = wires + parts + pads + probePen(L, c, pins);
   $("board").querySelectorAll(".pad").forEach(g => {
     g.addEventListener("click", () => probeBy("Pelajar", g.dataset.tp));
     g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); probeBy("Pelajar", g.dataset.tp); } });
@@ -1125,9 +1169,10 @@ function renderAll() { renderCase(); renderStats(); renderSkills(); renderBoard(
 
 /* ================= INTERAKSI ================= */
 function setProbeDisplay(id, v) {
+  if (!$("probeIco").innerHTML) $("probeIco").innerHTML = probeIcon(60);
   $("lampHi").classList.toggle("on", v === "1");
   $("lampLo").classList.toggle("on", v === "0");
-  $("lpRead").textContent = v ? READ[v][0] : "Probe belum diletak";
+  $("lpRead").textContent = v ? READ[v][0] : "Belum sentuh mana-mana titik";
   $("lpWhere").textContent = id ? `di ${pinName(id)} · ${rowLabel(S.kes, S.inp)}` : "Klik mana-mana bulatan kelabu pada papan";
   if (id) { const l = $("probeStrip"); l.classList.remove("flash"); void l.offsetWidth; l.classList.add("flash"); }
 }
